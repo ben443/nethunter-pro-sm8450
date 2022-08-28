@@ -9,3 +9,8 @@ actions:
     description: Install device-specific base packages
     packages:
       - {{ $device }}-support
+
+  - action: run
+    description: Enable eg25-manager service
+    chroot: true
+    command: systemctl enable eg25-manager.service

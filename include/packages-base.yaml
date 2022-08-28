@@ -9,6 +9,8 @@ actions:
     description: Install base packages
     packages:
       - mobian-base
+      - kali-linux-core
+      - kali-defaults
 {{ if $ssh }}
       - openssh-server
 {{ end }}

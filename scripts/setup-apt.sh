@@ -6,6 +6,12 @@ SUITE=$2
 # Add debian-security for stable releases; note that only the main component is supported
 if [ "${DEBIAN_SUITE}" = "bullseye" ] || [ "${DEBIAN_SUITE}" = "bookworm" ] || [ "${DEBIAN_SUITE}" = "trixie" ]; then
     echo "deb http://security.debian.org/ ${DEBIAN_SUITE}-security main" >> /etc/apt/sources.list
+else
+    case "${DEBIAN_SUITE}" in
+        kali-*)
+            echo "deb http://http.kali.org/kali ${DEBIAN_SUITE} ${SUITE}" > /etc/apt/sources.list
+            ;;
+    esac
 fi
 
 # Set the proper suite in our sources file

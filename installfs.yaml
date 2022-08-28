@@ -1,12 +1,12 @@
 {{- $architecture := or .architecture "arm64" -}}
-{{- $username := or .username "mobian" -}}
+{{- $username := or .username "kali" -}}
 {{- $password := or .password "1234" -}}
-{{- $hostname := or .hostname "mobian" -}}
+{{- $hostname := or .hostname "kali" -}}
 {{- $debian_suite := or .debian_suite "forky" -}}
 {{- $suite := or .suite $debian_suite -}}
 {{- $environment := or .environment "phosh" -}}
 {{- $installfs := or .installfs "installfs.tar.xz" }}
-{{- $mirror := or .mirror "http://deb.debian.org/debian" -}}
+{{- $mirror := or .mirror "http://http.kali.org/kali" -}}
 
 architecture: {{ $architecture }}
 

@@ -1,7 +1,7 @@
 {{- $architecture := or .architecture "arm64" -}}
-{{- $username := or .username "mobian" -}}
+{{- $username := or .username "kali" -}}
 {{- $password := or .password "1234" -}}
-{{- $hostname := or .hostname "mobian" -}}
+{{- $hostname := or .hostname "kali" -}}
 {{- $environment := or .environment "phosh" -}}
 {{- $contrib := or .contrib "false" -}}
 {{- $nonfree := or .nonfree "false" -}}
@@ -10,7 +10,7 @@
 {{- $debian_suite := or .debian_suite "forky" -}}
 {{- $suite := or .suite $debian_suite -}}
 {{- $rootfs := or .rootfs "rootfs.tar.xz" }}
-{{- $mirror := or .mirror "http://deb.debian.org/debian" -}}
+{{- $mirror := or .mirror "http://http.kali.org/kali" -}}
 
 architecture: {{ $architecture }}
 
@@ -27,6 +27,9 @@ actions:
 {{ end }}
     mirror: {{ $mirror }}
     variant: minbase
+    keyring-file: /usr/share/keyrings/kali-archive-keyring.gpg
+    keyring-package: kali-archive-keyring
+    ## check-gpg: false
 
   - action: apt
     recommends: true

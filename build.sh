@@ -29,9 +29,9 @@ use_docker=
 username=
 no_blockmap=
 ssh=
-debian_suite="forky"
+debian_suite="kali-rolling"
 suite="forky"
-contrib=
+contrib="true"
 sign=
 miniramfs=
 verbose=
@@ -109,10 +109,10 @@ esac
 
 installfs_file="installfs-${arch}.tar.xz"
 
-image_file="mobian-${device}-${environment}-$(date +%Y%m%d)"
+image_file="nethunterpro-$(date +%Y%m%d)-${device}-${environment}"
 if [ "$installer" ]; then
   image="installer"
-  image_file="mobian-installer-${device}-${environment}-$(date +%Y%m%d)"
+  image_file="nethunterpro-$(date +%Y%m%d)-installer-${device}-${environment}"
 fi
 
 rootfs_file="rootfs-${arch}-${environment}.tar.xz"
