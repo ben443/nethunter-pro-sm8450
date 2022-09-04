@@ -1,11 +1,17 @@
-# mobian-recipes
+# Kali NetHunter - Mobile Penetration Testing Platform
+
+[Kali NetHunter](](https://www.kali.org/get-kali/#kali-mobile)) is a Mobile Penetration Testing Platform.
+
+[![Kali NetHunter Logo](./images/nethunter-git-logo.png)](./images/nethunter-git-logo.png)
+
+# NetHunter Pro recipes
 
 A set of [debos](https://github.com/go-debos/debos) recipes for building a
-debian-based image for mobile phones, initially targetting Pine64's PinePhone.
+Kali Linux based image for mobile phones, initially targetting Pine64's PinePhone.
 
-Prebuilt images are available [here](http://images.mobian.org/).
+Prebuilt images are available [here](https://www.kali.org/get-kali/#kali-mobile).
 
-The default user is `mobian` with password `1234`.
+The default user is `kali` with password `1234`.
 
 ## Build
 
@@ -42,7 +48,7 @@ following required packages:
 - `binfmt-support`
 - `squashfs-tools-ng` (only required for generating installer images)
 
-Then simply browse to the `mobian-recipes` folder and execute `./build.sh`.
+Then simply browse to the `kali-nethunter-pro` folder and execute `./build.sh`.
 
 You can use `./build.sh -d` to use the docker version of `debos`.
 
