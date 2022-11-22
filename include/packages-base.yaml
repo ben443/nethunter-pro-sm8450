@@ -10,7 +10,7 @@ actions:
     packages:
       - mobian-base
       - kali-linux-core
-      - kali-defaults
+      - kali-themes-mobile
 {{ if $ssh }}
       - openssh-server
 {{ end }}
