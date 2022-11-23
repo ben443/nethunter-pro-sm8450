@@ -9,6 +9,7 @@ actions:
     description: Install device-specific base packages
     packages:
       - {{ $device }}-support
+      - kali-hw-pinephonepro
 
   - action: run
     description: Enable eg25-manager service
