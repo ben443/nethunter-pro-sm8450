@@ -8,7 +8,7 @@ actions:
     recommends: true
     description: Install device-specific packages for Phosh
     packages:
-{{ if ne $device "pinetab" }}
+{{ if eq $device "pinephone" }}
       - mobian-phosh-phone
       - firefox-esr-mobile-config
 {{ end }}
