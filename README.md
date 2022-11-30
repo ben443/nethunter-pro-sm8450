@@ -1,17 +1,17 @@
-# Kali NetHunter - Mobile Penetration Testing Platform
+# Kali NetHunter Pro (Build-Script)
 
-[Kali NetHunter](](https://www.kali.org/get-kali/#kali-mobile)) is a Mobile Penetration Testing Platform.
+<!-- Upstream: https://salsa.debian.org/Mobian-team/mobian-recipes -->
 
-[![Kali NetHunter Logo](./images/nethunter-git-logo.png)](./images/nethunter-git-logo.png)
+[Kali NetHunter Pro](https://www.kali.org/get-kali/#kali-mobile) _([docs](https://www.kali.org/docs/nethunter-pro/))_ is a Mobile Penetration Testing Platform, based on GNU/Linux _(rather than [Kali NetHunter](https://www.kali.org/get-kali/#kali-mobile) which uses [Android](https://www.kali.org/docs/nethunter/))_.
 
-# NetHunter Pro recipes
+![Kali NetHunter Pro Logo](./images/kali-nethunterpro-logo-dragon-orange-transparent.png)
 
 A set of [debos](https://github.com/go-debos/debos) recipes for building a
-Kali Linux based image for mobile phones, initially targetting Pine64's PinePhone.
+Kali Linux based image for mobile phones<!--, initially targeting Pine64's PinePhone-->.
 
-Prebuilt images are available [here](https://www.kali.org/get-kali/#kali-mobile).
+Pre-built images are available [here](https://www.kali.org/get-kali/#kali-mobile), otherwise you can build it yourself.
 
-The default user is `kali` with password `1234`.
+The [default user](https://www.kali.org/docs/introduction/default-credentials/) is `kali` with password `1234`.
 
 ## Build
 
