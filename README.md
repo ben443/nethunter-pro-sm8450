@@ -134,6 +134,10 @@ sudo dd if=<image> of=/dev/<sdcard> bs=1M
 
 **CAUTION: This will format the SD card and erase all its contents!!!**
 
+## Install via Windows
+
+You can use balena etcher to install the image downloaded onto the sd card. Start etcher and select the image file, target (which would be the sd card) and then "Flash".
+
 ## Contributing
 
 If you want to help with this project, please have a look at the
