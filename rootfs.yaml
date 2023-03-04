@@ -23,6 +23,7 @@ actions:
       - contrib
 {{ end }}
 {{ if eq $nonfree "true" }}
+      - non-free
       - non-free-firmware
 {{ end }}
     mirror: {{ $mirror }}
