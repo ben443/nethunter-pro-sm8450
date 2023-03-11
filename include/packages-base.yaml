@@ -4,6 +4,11 @@
 architecture: {{ $architecture }}
 
 actions:
+  - action: run
+    description: Fix packages if broken
+    chroot: true
+    command: apt install --fix-broken -y
+
   - action: apt
     recommends: true
     description: Install base packages
