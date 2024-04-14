@@ -22,6 +22,8 @@ system, install these dependencies by typing the following command in a terminal
 sudo apt install debos bmap-tools xz-utils
 ```
 
+Note: DNS resolution may break after installing the above packages. To fix this, add a valid DNS resolver (e.g., `1.1.1.1`) to the file `/etc/systemd/resolved.conf` and then `sudo systemctl restart systemd-resolved.service`
+
 If you want to build an image for a Qualcomm-based device, additional packages
 are required, which you can install with the following command:
 
