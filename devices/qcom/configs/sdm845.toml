@@ -21,12 +21,14 @@ model = "judyp"
 [[device]]
 vendor = "oneplus"
 model = "enchilada"
-append = "console=ttyMSM0,115200"
+append = ""
+# append = "console=ttyMSM0,115200"
 
 [[device]]
 vendor = "oneplus"
 model = "fajita"
-append = "console=ttyMSM0,115200"
+append = ""
+# append = "console=ttyMSM0,115200"
 
 [[device]]
 vendor = "samsung"
@@ -35,7 +37,8 @@ model = "starqltechn"
 [[device]]
 vendor = "shift"
 model = "axolotl"
-append = "console=ttyMSM0,115200"
+append = ""
+# append = "console=ttyMSM0,115200"
 
 [[device]]
 vendor = "sony"
