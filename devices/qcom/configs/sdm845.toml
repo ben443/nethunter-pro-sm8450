@@ -65,3 +65,5 @@ variant = "tianma"
 [[device]]
 vendor = "xiaomi"
 model = "polaris"
+append = ""
+# append = "console=ttyMSM0,115200"
