@@ -1,30 +1,30 @@
 prepare-artifacts-dir:
   stage: .pre
   script:
-    - ssh gitlab-ci@${MOBIAN_CACHE_HOST} mkdir -p ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
+    - ssh ${SSH_USER}@${MOBIAN_CACHE_HOST} mkdir -p ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
 
 cleanup-artifacts-dir:
   interruptible: false
   stage: .post
   script:
-    - ssh gitlab-ci@${MOBIAN_CACHE_HOST} rm -rf ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
+    - ssh ${SSH_USER}@${MOBIAN_CACHE_HOST} rm -rf ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
   when: always
 
 .save-artifacts: &save-artifacts |
-  scp ${MOBIAN_ARTIFACTS} gitlab-ci@${MOBIAN_CACHE_HOST}:${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
+  scp ${MOBIAN_ARTIFACTS} ${SSH_USER}@${MOBIAN_CACHE_HOST}:${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
 
 .restore-artifacts: &restore-artifacts |
   for artifact in ${MOBIAN_ARTIFACTS}; do
-    scp gitlab-ci@${MOBIAN_CACHE_HOST}:${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}/${artifact} .
+    scp ${SSH_USER}@${MOBIAN_CACHE_HOST}:${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}/${artifact} .
   done
 
 .upload-images: &upload-images |
   if [ "${CI_PIPELINE_SOURCE}" = "schedule" ]; then
     IMAGES_DIR=${IMAGES_ROOT}/${MOBIAN_DEVICE_FAMILY}/${IMAGES_UPLOAD_SUBDIR}/weekly
-    SSH_USER=builder
+    #SSH_USER=builder     # Overwritten, see: ./.gitlab-ci.yml
   else
     IMAGES_DIR=${IMAGES_CI_ROOT}/$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d.%H%M)
-    SSH_USER=gitlab-ci
+    #SSH_USER=gitlab-ci   # Overwritten, see: ./.gitlab-ci.yml
   fi
   ssh ${SSH_USER}@${MOBIAN_IMAGES_HOST} mkdir -p ${IMAGES_DIR}
   for image in ${IMAGE_NAME}*; do
@@ -106,7 +106,7 @@ cleanup-artifacts-dir:
   script:
     - MOBIAN_ARTIFACTS="rootfs-${ARCH}-${MOBIAN_GRAPHICAL_SHELL}-${MOBIAN_SUITE}.tar.xz"
     - *restore-artifacts
-    - IMAGE_NAME=mobian-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}-$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d)
+    - IMAGE_NAME=kali-nethunterpro-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}-$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d)
     - debos --cpus=1 --scratchsize=8G
       -t architecture:${ARCH}
       -t environment:${MOBIAN_GRAPHICAL_SHELL}
@@ -132,7 +132,7 @@ cleanup-artifacts-dir:
     - INSTALLFS_NAME="installfs-${ARCH}-${MOBIAN_SUITE}.tar.xz"
     - MOBIAN_ARTIFACTS="rootfs-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}.tar.xz ${INSTALLFS_NAME}"
     - *restore-artifacts
-    - IMAGE_NAME=mobian-installer-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}-$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d)
+    - IMAGE_NAME=kali-nethunterpro-installer-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}-$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d)
     - xzcat "rootfs-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}.tar.xz" | tar2sqfs "rootfs-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}.sqfs" > /dev/null 2>&1
     - debos --cpus=1 --scratchsize=8G
       -t architecture:${ARCH}

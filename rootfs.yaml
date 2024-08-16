@@ -3,14 +3,14 @@
 {{- $password := or .password "1234" -}}
 {{- $hostname := or .hostname "kali" -}}
 {{- $environment := or .environment "phosh" -}}
-{{- $contrib := or .contrib "false" -}}
+{{- $contrib := or .contrib "true" -}}
 {{- $nonfree := or .nonfree "false" -}}
 {{- $ssh := or .ssh "" -}}
 {{- $zram:= or .zram "false" -}}
-{{- $debian_suite := or .debian_suite "forky" -}}
+{{- $debian_suite := or .debian_suite "kali-rolling" -}}
 {{- $suite := or .suite $debian_suite -}}
 {{- $rootfs := or .rootfs "rootfs.tar.xz" }}
-{{- $mirror := or .mirror "http://http.kali.org/kali" -}}
+{{- $mirror := or .mirror "http://kali.download/kali" -}}
 
 architecture: {{ $architecture }}
 

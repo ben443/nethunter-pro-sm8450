@@ -8,6 +8,7 @@ if [ -z "${ARGS+x}" ]; then
     ARGS=""
 fi
 
+## NOTE: If editing below, make sure to update `./*.yml` for GitLab-CI, as it doesn't call this file (`./build.sh`)
 device="pinephone"
 image="image"
 partitiontable="gpt"
@@ -23,7 +24,7 @@ image_only=
 installer=
 zram=
 memory=
-mirror=
+mirror="http://http.kali.org/kali"
 password=
 use_docker=
 username=

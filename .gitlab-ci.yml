@@ -1,3 +1,100 @@
+---
+
+#
+## REF (Project): https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-pro/-/settings/ci_cd#js-cicd-variables-settings
+#
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Masked and hidden
+#   - Flags:
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Description: $ ansible localhost -m debug -a 'msg={{ kali_artifacts_gitlab_nethunterpro_ssh_key_gitlabci_private.splitlines() }}' | awk '/msg/ {p=1; next} /]/ {p=0} p {gsub(/^[ \t"]+|[",]+$/, ""); print}' | base64 -w0
+#   - Key: MOBIAN_CI_SSH_KEY
+#   - Value: <kali_artifacts_gitlab_nethunterpro_ssh_key_gitlabci_private | base64 -w0; echo>
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable        (REF: ./.gitlab-ci/job-definitions.yml)
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Masked and hidden
+#   - Flags:
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Description: $ grep -R kali_artifacts_gitlab_nethunterpro_user ./roles/
+#   - Key: SSH_USER
+#   - Value: <kali_artifacts_gitlab_nethunterpro_user>
+
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## <Overwrite: ./.gitlab-ci/global-declarations.yml>
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Visible
+#   - Flags:
+#       Protect variable: Disabled
+#       Expand variable reference: Disabled
+#   - Description: $ grep DEBIAN_SUITE ./.gitlab-ci/global-declarations.yml
+#   - Key: DEBIAN_SUITE
+#   - Value: "kali-rolling"
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Masked and hidden
+#   - Flags:
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Description: $ grep -R kali_artifacts_gitlab_nethunterpro_path ./roles/
+#   - Key: ARTIFACTS_ROOT
+#   - Value: <kali_artifacts_gitlab_nethunterpro_path>/../artifacts
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Masked and hidden
+#   - Flags:
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Description: $ grep -R kali_artifacts_gitlab_nethunterpro_path ./roles/
+#   - Key: IMAGES_CI_ROOT
+#   - Value: <kali_artifacts_gitlab_nethunterpro_path>
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Masked and hidden
+#   - Flags:
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Description: $ grep "^ansible_host:" ./inventory/kali/host_vars/kali-artifacts.yml
+#   - Key: MOBIAN_IMAGES_HOST
+#   - Value: <ansible_host>
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Masked and hidden
+#   - Flags:
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Description: $ grep "^ansible_host:" ./inventory/kali/host_vars/kali-artifacts.yml
+#   - Key: MOBIAN_CACHE_HOST
+#   - Value: <ansible_host>
+
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## </Overwrite: ./.gitlab-ci/global-declarations.yml>
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+## Can't use GitLab SaaS artifacts, as the files are larger than that max size (1GB+): 2024-08-18
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
 include:
   - .gitlab-ci/job-definitions.yml
   - .gitlab-ci/global-declarations.yml
