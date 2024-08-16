@@ -10,9 +10,13 @@ default:
   retry: 1
   interruptible: true
   before_script:
-    - chmod 0400 "$MOBIAN_CI_SSH_KEY"
+    #- chmod 0400 "$MOBIAN_CI_SSH_KEY"
     - eval $(ssh-agent -s)
-    - ssh-add "$MOBIAN_CI_SSH_KEY"
+    #- ssh-add "$MOBIAN_CI_SSH_KEY"
+    - echo "${MOBIAN_CI_SSH_KEY}" | base64 -d | ssh-add -
+    - unset MOBIAN_CI_SSH_KEY
+    - mkdir -pv ~/.ssh/
+    - ssh-keyscan -t ssh-ed25519 ${MOBIAN_CACHE_HOST} > ~/.ssh/known_hosts
     - |
       if [ -f "$MOBIAN_SSH_KEY" ]; then
           chmod 0400 "$MOBIAN_SSH_KEY"
@@ -25,7 +29,8 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
-    - if: $CI_PROJECT_ROOT_NAMESPACE == "Mobian-team"
+    ## REF: https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-pro
+    - if: $CI_PROJECT_ROOT_NAMESPACE == "kalilinux" && $CI_COMMIT_REF_PROTECTED == "true"
       when: always
     - when: never
 
