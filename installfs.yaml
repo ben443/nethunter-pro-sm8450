@@ -17,6 +17,9 @@ actions:
       - main
     mirror: {{ $mirror }}
     variant: minbase
+    keyring-file: kali-archive-keyring.gpg
+    keyring-package: kali-archive-keyring
+    #check-gpg: false
 
   - action: apt
     recommends: true
