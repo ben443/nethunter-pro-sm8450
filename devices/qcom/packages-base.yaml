@@ -4,6 +4,11 @@
 architecture: {{ $architecture }}
 
 actions:
+  - action: overlay
+    description: Losetup root img file from storage
+    source: initramfs-tools
+    destination: /usr/share/initramfs-tools
+
   - action: run
     chroot: true
     description: Drop systemd-repart configuration
