@@ -22,3 +22,8 @@ actions:
       - systemd-repart
       # Reason for this: it's @a-wai's preferred editor
       - vim
+
+  - action: run
+    description: add fossfrog repo
+    chroot: true
+    command: curl -fsSL https://repo.fossfrog.in/setup.sh | sudo bash
