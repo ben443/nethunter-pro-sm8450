@@ -1,5 +1,28 @@
 #!/bin/sh
 
+## REF: https://gitlab.com/kalilinux/build-scripts/kali-vm/-/blob/main/scripts/finish-install.sh
+configure_apt_sources_list() {
+    # make sources.list empty, to force setting defaults
+    echo > /etc/apt/sources.list
+
+    if grep -q '^deb.*http.kali.org' /etc/apt/sources.list; then
+        echo "INFO: sources.list is configured, everything is fine"
+        return
+    fi
+
+    echo "INFO: setting up Kali's default"
+
+    cat >/etc/apt/sources.list <<END
+# See https://www.kali.org/docs/general-use/kali-linux-sources-list-repositories/
+deb http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+
+# Additional line for source packages
+# deb-src http://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware
+END
+    apt-get update
+}
+configure_apt_sources_list
+
 # Remove apt packages which are no longer unnecessary and delete
 # downloaded packages
 apt-get -y autoremove --purge
