@@ -6,8 +6,11 @@ echo "$1" > /etc/hostname
 # Change plymouth default theme
 plymouth-set-default-theme kali
 
+## Enable greetd if installed
+if [ -f "`which greetd`" ]; then
+    systemctl enable greetd
 # Enable phog greeter if package is installed
-if [ -f "`which phog`" ]; then
+elif [ -f "`which phog`" ]; then
     systemctl enable greetd
 elif [ -f "`which phosh-session`" ]; then
     systemctl enable phosh
