@@ -14,6 +14,9 @@ else
     esac
 fi
 
+# Remove mobian.list as mobian keyring contains mobian sources file
+rm -fv /etc/apt/sources.list.d/mobian.list
+
 # Set the proper suite in our sources file
 sed -i "s/Suites: .*/Suites: ${SUITE}/" /etc/apt/sources.list.d/mobian.sources
 
