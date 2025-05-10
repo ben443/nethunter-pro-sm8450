@@ -30,8 +30,12 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       when: never
+    - if: '$CI_PIPELINE_SOURCE == "web"'       # Manual trigger from UI
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'  # Manual trigger via API
     ## REF: https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-pro
-    - if: $CI_PROJECT_ROOT_NAMESPACE == "kalilinux" && $CI_COMMIT_REF_PROTECTED == "true"
+    #       $CI_PROJECT_NAMESPACE = "kalilinux/nethunter/build-scripts"
+    #       $CI_PROJECT_PATH      = "kalilinux/nethunter/build-scripts/kali-nethunter-pro"
+    - if: '$CI_SERVER_URL == "https://gitlab.com" && $CI_PROJECT_ROOT_NAMESPACE == "kalilinux" && $CI_COMMIT_REF_PROTECTED == "true"'
       when: always
     - when: never
 
