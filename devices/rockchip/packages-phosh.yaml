@@ -13,3 +13,5 @@ actions:
       - firefox-esr-mobile-config
 {{ end }}
       - gnome-snapshot
+      - megapixels
+      - megapixels-config-pinephonepro
