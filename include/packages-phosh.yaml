@@ -17,6 +17,7 @@ actions:
       - squeekboard
       - nethunter
       - hijacker
+      - kalitorify
 
   - action: run
     description: Disable getty in the Phosh environment
