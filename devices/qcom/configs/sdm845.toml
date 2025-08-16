@@ -67,3 +67,14 @@ vendor = "xiaomi"
 model = "polaris"
 append = ""
 # append = "console=ttyMSM0,115200"
+
+
+[[device]]
+vendor = "xiaomi"
+model = "beryllium"
+variant = "ebbgnt"
+
+[[device]]
+vendor = "xiaomi"
+model = "beryllium"
+variant = "tianmaft"
