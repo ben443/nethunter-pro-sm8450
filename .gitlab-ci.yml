@@ -54,9 +54,11 @@
 
 workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "web"'     # Manual trigger from UI
-    - if: '$CI_PIPELINE_SOURCE == "pipeline"' # Manual trigger via API
-    - when: never                             # Disable all automatic triggers
+    - if: '$CI_PIPELINE_SOURCE == "web"'       # Manual trigger from UI
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'  # Manual trigger via API
+    - if: '$CI_SERVER_URL == "https://gitlab.com" && $CI_PROJECT_ROOT_NAMESPACE == "kalilinux"'   # $CI_PROJECT_NAMESPACE == "kalilinux/nethunter/build-scripts", $CI_PROJECT_PATH == "kalilinux/nethunter/build-scripts//kali-nethunter-pro"
+      when: always
+    - when: never                              # Disable all automatic triggers
 
 include:
   - .gitlab-ci/job-definitions.yml
