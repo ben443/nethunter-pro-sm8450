@@ -1,6 +1,12 @@
 ---
 
 #
+## REF: https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-pro/-/tree/main/.gitlab-ci/global-declarations.yml
+#
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+#
 ## REF (Project): https://gitlab.com/kalilinux/nethunter/build-scripts/kali-nethunter-pro/-/settings/ci_cd#js-cicd-variables-settings
 #
 
@@ -21,9 +27,9 @@
 #   - Flags
 #       Protect variable: Enabled
 #       Expand variable reference: Disabled
-#   - Description: $ ansible localhost -m debug -a 'msg={{ kali_nethunterpro_ssh_key_gitlabci_private.splitlines() }}' | awk '/msg/ {p=1; next} /]/ {p=0} p {gsub(/^[ \t"]+|[",]+$/, ""); print}' | base64 -w0
+#   - Description: $ ansible localhost -m debug -a 'msg={{ kali_build_ssh_key_private.splitlines() }}' | awk '/msg/ {p=1; next} /]/ {p=0} p {gsub(/^[ \t"]+|[",]+$/, ""); print}' | base64 -w0
 #   - Key: MOBIAN_CI_SSH_KEY
-#   - Value: <kali_nethunterpro_ssh_key_gitlabci_private | base64 -w0; echo>
+#   - Value: <kali_build_ssh_key_private | base64 -w0; echo>
 
 ## Settings -> CI/CD -> Variables -> Expand -> Add variable
 #   - Type: Variable
@@ -43,8 +49,37 @@
 #       Protect variable: Enabled
 #       Expand variable reference: Disabled
 #   - Key: SSH_USER
-#   - Value: <kali_nethunterpro_build_os_user>
+#   - Value: <kali_nethunterpro_user>
 
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Visible
+#   - Flags
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Key: ARTIFACTS_ROOT
+#   - Value: /srv/artifacts/gitlab-ci/nethunterpro/artifacts
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Visible
+#   - Flags
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Key: IMAGES_CI_ROOT
+#   - Value: /srv/artifacts/gitlab-ci/nethunterpro/ci-images
+
+## Settings -> CI/CD -> Variables -> Expand -> Add variable
+#   - Type: Variable
+#   - Environments: All (default)
+#   - Visibility: Visible
+#   - Flags
+#       Protect variable: Enabled
+#       Expand variable reference: Disabled
+#   - Key: IMAGES_ROOT
+#   - Value: /srv/artifacts/gitlab-ci/nethunterpro/images
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
