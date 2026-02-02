@@ -34,7 +34,7 @@ workflow:
 
 variables:
   DEBIAN_SUITE: "kali-rolling"
-  MOBIAN_SUITE: "trixie"
+  MOBIAN_SUITE: "forky"
   MOBIAN_BOOT_PARTITION_START: "1MiB"
   MOBIAN_FILESYSTEM: "ext4"
   MOBIAN_IMAGE_SIZE: "6GB"

@@ -8,7 +8,7 @@
 {{- $ssh := or .ssh "" -}}
 {{- $zram:= or .zram "false" -}}
 {{- $debian_suite := or .debian_suite "kali-rolling" -}}
-{{- $suite := or .suite "trixie" -}}
+{{- $suite := or .suite "forky" -}}
 {{- $rootfs := or .rootfs "rootfs.tar.gz" }}
 {{- $mirror := or .mirror "http://http.kali.org/kali" -}}
 

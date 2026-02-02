@@ -3,7 +3,7 @@
 {{- $password := or .password "1234" -}}
 {{- $hostname := or .hostname "kali" -}}
 {{- $debian_suite := or .debian_suite "kali-rolling" -}}
-{{- $suite := or .suite "trixie" -}}
+{{- $suite := or .suite "forky" -}}
 {{- $environment := or .environment "phosh" -}}
 {{- $installfs := or .installfs "installfs.tar.gz" }}
 {{- $mirror := or .mirror "http://http.kali.org/kali" -}}
