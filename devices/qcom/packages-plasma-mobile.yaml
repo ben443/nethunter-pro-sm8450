@@ -5,8 +5,9 @@ architecture: {{ $architecture }}
 
 actions:
   - action: apt
-    recommends: false
+    recommends: true
     description: Install device-specific packages for Plasma Mobile
     packages:
-      - mobian-plasma-mobile-phone
       - firefox-esr-mobile-config
+      - mobian-plasma-mobile-phone
+      - plasma-camera

@@ -91,7 +91,7 @@ case "${device}" in
     family="librem5"
     ARGS="${ARGS} -t bootstart:8MiB"
     ;;
-  "qcom"|"sdm845"|"sm7225"|"qcom-wip" )
+  "sdm845"|"sdm670"|"sm6350"|"sc7280"|"sm7150"|"qcom-wip" )
     if [ "${device}" = "qcom-wip" ]; then
       device="wip"
     fi

@@ -6,7 +6,7 @@
 {{- $filesystem := or .filesystem "ext4" }}
 {{- $environment := or .environment "phosh" -}}
 {{- $image := or .image "mobian-installer.img" -}}
-{{- $installersize := or .installersize "8GB" }}
+{{- $installersize := or .installersize "10GB" }}
 {{- $installfs := or .installfs "installfs.tar.gz" }}
 {{- $bootstart := or .bootstart "1MiB" }}
 

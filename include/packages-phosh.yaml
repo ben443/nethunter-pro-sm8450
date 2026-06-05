@@ -4,39 +4,16 @@ architecture: {{ $architecture }}
 
 actions:
   - action: apt
-    recommends: false
+    recommends: true
     description: Install Phosh packages
     packages:
       - mobian-phosh
       # Additional software we don't want metapackages to depend on
-      - endeavour
-      - epiphany-browser
-      - evince
       - firefox-esr
-      - geary
-      - gnome-calculator
-      - gnome-calendar
-      - gnome-console
-      - gnome-maps
-      - gnome-software
-      - gnome-software-plugin-deb
-      - gnome-software-plugin-flatpak
       - gnome-sound-recorder
-      - gnome-text-editor
-      - gnome-usage
-      - gnome-weather
-      - lollypop
       - loupe
-      - phog
-      - phosh-mobile-settings
-      - phosh-plugins
-      - phosh-tour
-      - phosh-wallpapers
-      - portfolio-filemanager
       - powersupply-gtk
-      - sound-theme-phosh
       - webext-ublock-origin-firefox
-      - chatty
       - squeekboard
       - nethunter
       - hijacker
