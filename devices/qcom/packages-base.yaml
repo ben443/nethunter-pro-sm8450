@@ -15,7 +15,7 @@ actions:
     command: rm -rf /etc/repart.d/
 
   - action: apt
-    recommends: true
+    recommends: false
     description: Install device-specific base packages
     packages:
       - gstreamer1.0-plugins-base-apps
