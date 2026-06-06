@@ -4,7 +4,7 @@ architecture: {{ $architecture }}
 
 actions:
   - action: apt
-    recommends: true
+    recommends: false
     description: Install Phosh packages
     packages:
       - mobian-phosh
