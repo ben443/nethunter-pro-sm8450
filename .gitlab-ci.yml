@@ -219,10 +219,34 @@ image-sdm845-phosh:
   needs:
     - rootfs-arm64-phosh
 
-image-sm7225-phosh:
+image-sdm670-phosh:
   extends:
     - .image
-    - .device-sm7225
+    - .device-sdm670
+    - .shell-phosh
+  needs:
+    - rootfs-arm64-phosh
+
+image-sm6350-phosh:
+  extends:
+    - .image
+    - .device-sm6350
+    - .shell-phosh
+  needs:
+    - rootfs-arm64-phosh
+
+image-sc7280-phosh:
+  extends:
+    - .image
+    - .device-sc7280
+    - .shell-phosh
+  needs:
+    - rootfs-arm64-phosh
+
+image-sm7150-phosh:
+  extends:
+    - .image
+    - .device-sm7150
     - .shell-phosh
   needs:
     - rootfs-arm64-phosh
