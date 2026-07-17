@@ -13,6 +13,7 @@ fi
 
 # Enable essential services
 systemctl enable bluetooth.service
+systemctl enable ssh.service
 
 # systemd-firstboot requires user input, which isn't possible
 # on mobile devices
