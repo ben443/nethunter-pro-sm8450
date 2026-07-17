@@ -48,6 +48,11 @@ actions:
     source: overlays/kali-motd/
     destination: /etc/kali-motd/
 
+  - action: overlay
+    description: Add improved Squeekboard terminal layout
+    source: overlays/skel/
+    destination: /etc/skel/
+
   - action: run
     description: Setup Mobian repository
     chroot: true
