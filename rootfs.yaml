@@ -43,6 +43,11 @@ actions:
     source: overlays/repart.d/
     destination: /etc/repart.d/
 
+  - action: overlay
+    description: Disable Kali motd during boot
+    source: overlays/kali-motd/
+    destination: /etc/kali-motd/
+
   - action: run
     description: Setup Mobian repository
     chroot: true
