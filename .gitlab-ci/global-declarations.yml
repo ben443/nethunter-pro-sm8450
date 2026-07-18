@@ -13,6 +13,7 @@ default:
     #- chmod 0400 "$MOBIAN_CI_SSH_KEY"
     - eval $(ssh-agent -s)
     #- ssh-add "$MOBIAN_CI_SSH_KEY"
+    - test -n "${MOBIAN_CI_SSH_KEY}" || (echo "[-] MOBIAN_CI_SSH_KEY missing/empty" && exit 1)
     - echo "${MOBIAN_CI_SSH_KEY}" | base64 -d | ssh-add -
     - unset MOBIAN_CI_SSH_KEY
     - mkdir -pv ~/.ssh/
