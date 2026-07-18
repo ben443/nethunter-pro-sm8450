@@ -1,24 +1,27 @@
 prepare-artifacts-dir:
   stage: .pre
   script:
-    - ssh ${SSH_USER}@${MOBIAN_CACHE_HOST} mkdir -p ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
+    - ssh ${SSH_USER}@${MOBIAN_CACHE_HOST} mkdir -pv ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
 
 cleanup-artifacts-dir:
   interruptible: false
   stage: .post
   script:
-    - ssh ${SSH_USER}@${MOBIAN_CACHE_HOST} rm -rf ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
+    - ssh ${SSH_USER}@${MOBIAN_CACHE_HOST} rm -rfv ${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
   when: always
 
 .save-artifacts: &save-artifacts |
   scp ${MOBIAN_ARTIFACTS} ${SSH_USER}@${MOBIAN_CACHE_HOST}:${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}
+  ls -lh ${MOBIAN_ARTIFACTS}
 
 .restore-artifacts: &restore-artifacts |
   for artifact in ${MOBIAN_ARTIFACTS}; do
     scp ${SSH_USER}@${MOBIAN_CACHE_HOST}:${ARTIFACTS_ROOT}/${CI_PIPELINE_ID}/${artifact} .
   done
+  ls -lh ${MOBIAN_ARTIFACTS}
 
 .upload-images: &upload-images |
+  echo "[i] CI_PIPELINE_SOURCE: ${CI_PIPELINE_SOURCE}"
   if [ "${CI_PIPELINE_SOURCE}" = "schedule" ]; then
     IMAGES_DIR=${IMAGES_ROOT}/${MOBIAN_DEVICE_FAMILY}/${IMAGES_UPLOAD_SUBDIR}/weekly
     #SSH_USER=builder     # Overwritten, see: ./.gitlab-ci.yml
@@ -26,19 +29,21 @@ cleanup-artifacts-dir:
     IMAGES_DIR=${IMAGES_CI_ROOT}/$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d.%H%M)
     #SSH_USER=gitlab-ci   # Overwritten, see: ./.gitlab-ci.yml
   fi
-  ssh ${SSH_USER}@${MOBIAN_IMAGES_HOST} mkdir -p ${IMAGES_DIR}
+  echo "[i] IMAGES_DIR: ${IMAGES_DIR}"
+  ssh ${SSH_USER}@${MOBIAN_IMAGES_HOST} mkdir -pv ${IMAGES_DIR}
   for image in ${IMAGE_NAME}*; do
     scp ${image} ${SSH_USER}@${MOBIAN_IMAGES_HOST}:${IMAGES_DIR}/
+    ls -lh ${image}
   done
 
 .finish-images: &finish-images |
   if [ -f "${IMAGE_NAME}.img" ]; then
     bmaptool create "${IMAGE_NAME}.img" > "${IMAGE_NAME}.img.bmap"
-    xz --compress --force ${IMAGE_NAME}.img
+    xz --verbose --compress --force ${IMAGE_NAME}.img
     sha256sum ${IMAGE_NAME}.img.xz ${IMAGE_NAME}.img.bmap > ${IMAGE_NAME}.sha256sums
   elif [ -f ${IMAGE_NAME}.rootfs.img ]; then
-    tar cJf ${IMAGE_NAME}.tar.xz ${IMAGE_NAME}.*.img
-    rm ${IMAGE_NAME}.*.img
+    tar cvJf ${IMAGE_NAME}.tar.xz ${IMAGE_NAME}.*.img
+    rm -v ${IMAGE_NAME}.*.img
     sha256sum ${IMAGE_NAME}.tar.xz > ${IMAGE_NAME}.sha256sums
   fi
 
@@ -53,7 +58,7 @@ cleanup-artifacts-dir:
   stage: rootfs
   script:
     - MOBIAN_ARTIFACTS="rootfs-${ARCH}-${MOBIAN_GRAPHICAL_SHELL}-${MOBIAN_SUITE}.tar.xz"
-    - debos --cpus=1 --scratchsize=8G
+    - debos --verbose --cpus=1 --scratchsize=8G
       -t architecture:${ARCH}
       -t environment:${MOBIAN_GRAPHICAL_SHELL}
       -t nonfree:${MOBIAN_INCLUDE_NONFREE}
@@ -68,7 +73,7 @@ cleanup-artifacts-dir:
   stage: rootfs
   script:
     - MOBIAN_ARTIFACTS="installfs-${ARCH}-${MOBIAN_SUITE}.tar.xz"
-    - debos --cpus=1 --scratchsize=8G
+    - debos --verbose --cpus=1 --scratchsize=8G
       -t architecture:${ARCH}
       -t suite:${MOBIAN_SUITE}
       -t installfs:${MOBIAN_ARTIFACTS}
@@ -81,7 +86,7 @@ cleanup-artifacts-dir:
   script:
     - MOBIAN_ARTIFACTS="rootfs-${ARCH}-${MOBIAN_GRAPHICAL_SHELL}-${MOBIAN_SUITE}.tar.xz"
     - *restore-artifacts
-    - debos --cpus=1 --scratchsize=8G
+    - debos --verbose --cpus=1 --scratchsize=8G
       -t architecture:${ARCH}
       -t environment:${MOBIAN_GRAPHICAL_SHELL}
       -t device:${MOBIAN_DEVICE_NAME}
@@ -107,7 +112,7 @@ cleanup-artifacts-dir:
     - MOBIAN_ARTIFACTS="rootfs-${ARCH}-${MOBIAN_GRAPHICAL_SHELL}-${MOBIAN_SUITE}.tar.xz"
     - *restore-artifacts
     - IMAGE_NAME=kali-nethunterpro-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}-$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d)
-    - debos --cpus=1 --scratchsize=8G
+    - debos --verbose --cpus=1 --scratchsize=8G
       -t architecture:${ARCH}
       -t environment:${MOBIAN_GRAPHICAL_SHELL}
       -t device:${MOBIAN_DEVICE_NAME}
@@ -134,7 +139,7 @@ cleanup-artifacts-dir:
     - *restore-artifacts
     - IMAGE_NAME=kali-nethunterpro-installer-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}-$(date --date="${CI_PIPELINE_CREATED_AT}" +%Y%m%d)
     - xzcat "rootfs-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}.tar.xz" | tar2sqfs "rootfs-${MOBIAN_DEVICE_NAME}-${MOBIAN_GRAPHICAL_SHELL}.sqfs" > /dev/null 2>&1
-    - debos --cpus=1 --scratchsize=8G
+    - debos --verbose --cpus=1 --scratchsize=8G
       -t architecture:${ARCH}
       -t environment:${MOBIAN_GRAPHICAL_SHELL}
       -t device:${MOBIAN_DEVICE_NAME}
