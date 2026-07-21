@@ -10,4 +10,4 @@ actions:
     packages:
       - mobian-plasma-mobile-phone
       - firefox-esr-mobile-config
-      - millipixels
+      #- millipixels
