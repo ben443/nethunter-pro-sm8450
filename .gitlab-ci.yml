@@ -289,21 +289,21 @@ image-sm6350-plasma-mobile:
   needs:
     - rootfs-arm64-plasma-mobile
 
-image-sm7150-phosh:
-  extends:
-    - .image
-    - .device-sm7150
-    - .shell-phosh
-  needs:
-    - rootfs-arm64-phosh
-
-image-sm7150-plasma-mobile:
-  extends:
-    - .image
-    - .device-sm7150
-    - .shell-plasma-mobile
-  needs:
-    - rootfs-arm64-plasma-mobile
+#image-sm7150-phosh:
+#  extends:
+#    - .image
+#    - .device-sm7150
+#    - .shell-phosh
+#  needs:
+#    - rootfs-arm64-phosh
+#
+#image-sm7150-plasma-mobile:
+#  extends:
+#    - .image
+#    - .device-sm7150
+#    - .shell-plasma-mobile
+#  needs:
+#    - rootfs-arm64-plasma-mobile
 
 image-amd64-phosh:
   extends:
