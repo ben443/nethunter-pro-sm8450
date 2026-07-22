@@ -1,17 +1,11 @@
-# Kali NetHunter Pro (Build-Script)
-
-<!-- Upstream: https://salsa.debian.org/Mobian-team/mobian-recipes -->
-
-[Kali NetHunter Pro](https://www.kali.org/get-kali/#kali-mobile) _([docs](https://www.kali.org/docs/nethunter-pro/))_ is a Mobile Penetration Testing Platform, based on GNU/Linux _(rather than [Kali NetHunter](https://www.kali.org/get-kali/#kali-mobile) which uses [Android](https://www.kali.org/docs/nethunter/))_.
-
-![Kali NetHunter Pro Logo](./images/kali-nethunterpro-logo-dragon-orange-transparent.png)
+# mobian-recipes
 
 A set of [debos](https://github.com/go-debos/debos) recipes for building a
-Kali Linux based image for mobile phones<!--, initially targeting Pine64's PinePhone-->.
+debian-based image for mobile phones, initially targetting Pine64's PinePhone.
 
-Pre-built images are available [here](https://www.kali.org/get-kali/#kali-mobile), otherwise you can build it yourself.
+Prebuilt images are available [here](http://images.mobian.org/).
 
-The [default user](https://www.kali.org/docs/introduction/default-credentials/) is `kali` with password `1234`.
+The default user is `mobian` with password `1234`.
 
 ## Build
 
@@ -21,8 +15,6 @@ system, install these dependencies by typing the following command in a terminal
 ```
 sudo apt install debos bmap-tools xz-utils
 ```
-
-Note: DNS resolution may break after installing the above packages. To fix this, add a valid DNS resolver (e.g., `1.1.1.1`) to the file `/etc/systemd/resolved.conf` and then `sudo systemctl restart systemd-resolved.service`
 
 If you want to build an image for a Qualcomm-based device, additional packages
 are required, which you can install with the following command:
@@ -50,7 +42,7 @@ following required packages:
 - `binfmt-support`
 - `squashfs-tools-ng` (only required for generating installer images)
 
-Then simply browse to the `kali-nethunter-pro` folder and execute `./build.sh`.
+Then simply browse to the `mobian-recipes` folder and execute `./build.sh`.
 
 You can use `./build.sh -d` to use the docker version of `debos`.
 
@@ -135,10 +127,6 @@ sudo dd if=<image> of=/dev/<sdcard> bs=1M
 `<sdcard>`.*
 
 **CAUTION: This will format the SD card and erase all its contents!!!**
-
-## Install via Windows
-
-You can use balena etcher to install the image downloaded onto the sd card. Start etcher and select the image file, target (which would be the sd card) and then "Flash".
 
 ## Contributing
 

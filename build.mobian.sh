@@ -8,7 +8,6 @@ if [ -z "${ARGS+x}" ]; then
     ARGS=""
 fi
 
-## NOTE: If editing below, make sure to update `./*.yml` for GitLab-CI, as it doesn't call this file (`./build.sh`)
 device="pinephone"
 image="image"
 partitiontable="gpt"
@@ -24,15 +23,15 @@ image_only=
 installer=
 zram=
 memory=
-mirror="http://http.kali.org/kali"
+mirror=
 password=
 use_docker=
 username=
 no_blockmap=
 ssh=
-debian_suite="kali-rolling"
+debian_suite="forky"
 suite="forky"
-contrib="true"
+contrib=
 sign=
 miniramfs=
 verbose=
@@ -86,7 +85,7 @@ case "${device}" in
     family="librem5"
     ARGS="${ARGS} -t nonfree:true"
     ;;
-  "sdm845"|"sdm670"|"sm6350"|"sc7280"|"qcom-wip" )
+  "sdm845"|"sdm670"|"sm6350"|"sc7280"|"sm7150"|"qcom-wip" )
     if [ "${device}" = "qcom-wip" ]; then
       device="wip"
     fi
@@ -110,10 +109,10 @@ esac
 
 installfs_file="installfs-${arch}.tar.xz"
 
-image_file="nethunterpro-$(date +%Y%m%d)-${device}-${environment}"
+image_file="mobian-${device}-${environment}-$(date +%Y%m%d)"
 if [ "$installer" ]; then
   image="installer"
-  image_file="nethunterpro-$(date +%Y%m%d)-installer-${device}-${environment}"
+  image_file="mobian-installer-${device}-${environment}-$(date +%Y%m%d)"
 fi
 
 rootfs_file="rootfs-${arch}-${environment}.tar.xz"
