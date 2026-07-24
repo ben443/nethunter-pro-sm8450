@@ -1,0 +1,16 @@
+---
+
+extends: default
+rules:
+  comments:
+    require-starting-space: false
+  line-length:
+    max: 300
+    level: warning
+## ./*.yaml: debos Go-template recipes ({{ ... }}), not parseable as plain YAML
+## ./devices/ & ./include/: (Mostly) upstream
+ignore: |
+  image.yaml
+  rootfs.yaml
+  devices/
+  include/
