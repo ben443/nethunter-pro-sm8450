@@ -173,6 +173,7 @@ Customization options:
                                Supported: gpt mbr
   -M, --miniramfs              Generates a stripped-down initramfs for devices which have a size restriction
   -H, --hostname HOSTNAME      Set system host name (default: kali)
+  -P, --packages PKGS          Install extra packages (comma/space separated list)
   -S, --ssh                    Configure SSH (default: false)
   -U, --userpass USERPASS      Username and password, separated by a colon (default: kali:1234)
   -Z, --zram                   Mounts /tmp and /var/tmp on compressed RAM-backed zram devices instead of flash storage
@@ -238,6 +239,7 @@ $ ./build.sh
 ┃  * Version             : rolling
 ┃  * Zip artifacts       : false
 ┃ # NetHunter Pro:
+┃  * Additional packages :
 ┃  * Desktop environment : phosh
 ┃  * File System         : ext4
 ┃  * Hostname            : kali
@@ -264,6 +266,18 @@ Now, we are going to build it from the [last stable release (last snapshot)](htt
 
 ```console
 $ ./build.sh -b kali-last-snapshot -D plasma-mobile
+```
+
+- - -
+
+You can use `-P`/`--packages` to include additional packages and/or [metapackages](https://www.kali.org/docs/general-use/metapackages/).
+
+The default disk size will accommodate the default tooling. However, should you choose a larger tooling, you may need increase the disk size with `-s`/`--size` (See [kali.org/docs/installation/installation-sizes/](https://www.kali.org/docs/installation/installation-sizes/) for rough sizing guide):
+
+```console
+$ ./build.sh -P kali-linux-large -s 40
+$
+$ ./build.sh --packages kali-linux-everything --size 60
 ```
 
 - - -

@@ -11,6 +11,7 @@
 {{- $suite := or .suite $debian_suite -}}
 {{- $rootfs := or .rootfs "rootfs.tar.xz" }}
 {{- $mirror := or .mirror "http://kali.download/kali" -}}
+{{- $packages := or .packages "" -}}
 
 architecture: {{ $architecture }}
 
@@ -73,6 +74,13 @@ actions:
 
   - action: recipe
     recipe: include/packages-{{ $environment }}.yaml
+
+{{ if ne $packages "" }}
+  - action: apt
+    recommends: true
+    description: "Install extra packages: {{ $packages }}"
+    packages: [ {{ $packages }} ]
+{{ end }}
 
   - action: run
     description: Set up default user

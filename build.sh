@@ -50,6 +50,7 @@ DEFAULT_KALI_HOSTNAME="kali"
 DEFAULT_MEMORY="2G"   # 2G is working fine, until doing LUKS (then 6G)
 DEFAULT_MINIRAMFS="false"
 DEFAULT_OUT_DIR="${PWD}/output"
+DEFAULT_PACKAGES=
 DEFAULT_PARTITION_TABLE="gpt"
 DEFAULT_SCRATCHSIZE="8G"
 DEFAULT_SIZE="8"
@@ -75,6 +76,7 @@ MINIRAMFS="${MINIRAMFS:-$DEFAULT_MINIRAMFS}"
 MOBIAN_SUITE="forky"   # REF: http://repo.mobian.org/dists/${MOBIAN_SUITE}
 OUT_DIR="${OUT_DIR:-$DEFAULT_OUT_DIR}"
 OUT_FILENAME=
+PACKAGES="${PACKAGES:-$DEFAULT_PACKAGES}"
 PARTITION_TABLE="${PARTITION_TABLE:-$DEFAULT_PARTITION_TABLE}"
 PASSWORD=
 PLATFORM="image"
@@ -142,6 +144,7 @@ Customization options:
                                Supported: ${SUPPORTED_PARTITION_TABLES}
   -M, --miniramfs              Generates a stripped-down initramfs for devices which have a size restriction
   -H, --hostname HOSTNAME      Set system host name (default: $( b "${DEFAULT_KALI_HOSTNAME}" ))
+  -P, --packages PKGS          Install extra packages (comma/space separated list)
   -S, --ssh                    Configure SSH (default: $( b "${DEFAULT_SSH}" ))
   -U, --userpass USERPASS      Username and password, separated by a colon (default: $( b "${DEFAULT_USERPASS}" ))
   -Z, --zram                   Mounts /tmp and /var/tmp on compressed RAM-backed zram devices instead of flash storage
@@ -347,6 +350,7 @@ create_image() {
     -t environment:"${DESKTOP}"
     -t hostname:"${KALI_HOSTNAME}"
     -t mirror:"${BUILD_MIRROR}"
+    -t packages:"${PACKAGES}"
   )
   [ -n "${DEBUG}" ] && _cmd_args+=(--verbose)
 
@@ -466,6 +470,7 @@ while [ "${#}" -gt 0 ]; do
     -H|--hostname)         require_arg "${1}" "${2:-}"; KALI_HOSTNAME="${2}";        shift 2 ;;
     -M|--miniramfs)        MINIRAMFS=true;                                           shift ;;
     -m|--mirror)           require_arg "${1}" "${2:-}"; BUILD_MIRROR="${2}";         shift 2 ;;
+    -P|--packages)         require_arg "${1}" "${2:-}"; PACKAGES="${PACKAGES} ${2}"; shift 2 ;;
     -p|--partition-table)  require_arg "${1}" "${2:-}"; PARTITION_TABLE="${2}";      shift 2 ;;
     -R|--crypt-password)   require_arg "${1}" "${2:-}"; CRYPT_PASS="${2}";           shift 2 ;;
     -r|--rootfs)           require_arg "${1}" "${2:-}"; ROOTFS="${2}";               shift 2 ;;
@@ -688,6 +693,12 @@ case "${DEVICE}" in
     ;;
 esac
 
+## Order packages alphabetically, separate each package with ", "
+mapfile -t _pkgs < <( tr ', ' '\n' <<< "${PACKAGES}" | LC_ALL=C sort -u | awk 'NF' )
+printf -v PACKAGES '%s, ' "${_pkgs[@]}"
+unset _pkgs
+PACKAGES="${PACKAGES%, }"
+
 ## Is rootfs set OR if we should be using rootfs
 if [ -n "${ROOTFS}" ] || [ "${DEVICE}" = "rootfs" ]; then
   ## Make sure there is a default value
@@ -785,6 +796,7 @@ point "Version             : $( b "${VERSION}" )"
 point "Zip artifacts       : $( b "${ZIP}" )"
 
 echo "# ${PROJECT}:"
+point "Additional packages : $( b "${PACKAGES}" )"
 point "Desktop environment : $( b "${DESKTOP}" )"
 point "File System         : $( b "${FILESYSTEM}" )"
 point "Hostname            : $( b "${KALI_HOSTNAME}" )"
