@@ -202,6 +202,10 @@ else
             ;;
     esac
 fi
+if [ ! -s "${WORKDIR}/uniLoader/blob/Image" ]; then
+    echo "ERROR: generated kernel payload is empty or unreadable"
+    exit 1
+fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
