@@ -31,42 +31,41 @@ else
 fi
 
 KERNEL_IMAGE=""
-if [ -e /vmlinuz ]; then
-    KERNEL_IMAGE="$(readlink -f /vmlinuz)"
-    case "$(basename "${KERNEL_IMAGE}")" in
+KERNEL_VERSION=""
+for candidate in \
+    $(if [ -e /vmlinuz ]; then readlink -f /vmlinuz; fi) \
+    $(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort -Vr)
+do
+    base="$(basename "${candidate}")"
+    case "${base}" in
         vmlinuz-*)
+            version="${base#vmlinuz-}"
             ;;
         *)
-            KERNEL_IMAGE=""
+            continue
             ;;
     esac
-fi
-if [ -z "${KERNEL_IMAGE}" ]; then
-    KERNEL_IMAGE="$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort -V | tail -1)"
-fi
-if [ -z "${KERNEL_IMAGE}" ] || [ ! -f "${KERNEL_IMAGE}" ]; then
-    echo "ERROR: unable to detect installed kernel image"
+
+    ramdisk_candidate="/boot/initrd.img-${version}"
+    if [ ! -f "${ramdisk_candidate}" ]; then
+        ramdisk_candidate="/boot/initramfs-${version}.img"
+    fi
+    dtb_candidate="/usr/lib/linux-image-${version}/qcom/sm8450-samsung-gts8pwifi.dtb"
+
+    if [ -f "${candidate}" ] && [ -f "${ramdisk_candidate}" ] && [ -f "${dtb_candidate}" ]; then
+        KERNEL_IMAGE="${candidate}"
+        KERNEL_VERSION="${version}"
+        RAMDISK_IMAGE="${ramdisk_candidate}"
+        DTB_IMAGE="${dtb_candidate}"
+        break
+    fi
+done
+
+if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ]; then
+    echo "ERROR: unable to locate matching kernel, ramdisk, and DTB artifacts for sm8450"
     exit 1
-fi
-KERNEL_BASENAME="$(basename "${KERNEL_IMAGE}")"
-KERNEL_VERSION="${KERNEL_BASENAME#vmlinuz-}"
-RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
-if [ ! -f "${RAMDISK_IMAGE}" ]; then
-    RAMDISK_IMAGE="/boot/initramfs-${KERNEL_VERSION}.img"
-fi
-if [ ! -f "${RAMDISK_IMAGE}" ]; then
-    RAMDISK_IMAGE="/boot/initramfs"
-fi
-if [ ! -f "${RAMDISK_IMAGE}" ]; then
-    RAMDISK_IMAGE="/initramfs"
 fi
 RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
-
-DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8pwifi.dtb"
-if [ ! -f "${DTB_IMAGE}" ]; then
-    echo "ERROR: unable to locate SM8450 DTB for uniLoader build"
-    exit 1
-fi
 
 for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}"; do
     if [ ! -f "${file}" ]; then
@@ -89,10 +88,16 @@ echo "${BOARD_SHA256}  ${WORKDIR}/uniLoader/${BOARD_FILE}" | sha256sum -c -
 echo "${DEFCONFIG_SHA256}  ${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" | sha256sum -c -
 echo "${REGISTRATION_SHA256}  ${WORKDIR}/${REGISTRATION_FILE}" | sha256sum -c -
 
-MAKEFILE_REG_LINE="$(sed -n 's|.*board/Makefile:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
-MAKEFILE_REG_TEXT="$(sed -n 's|.*board/Makefile:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
-KCONFIG_REG_LINE="$(sed -n 's|.*board/Kconfig:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
-KCONFIG_REG_TEXT="$(sed -n 's|.*board/Kconfig:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
+MAKEFILE_REG_COUNT="$(grep -c 'board/Makefile:' "${WORKDIR}/${REGISTRATION_FILE}")"
+KCONFIG_REG_COUNT="$(grep -c 'board/Kconfig:' "${WORKDIR}/${REGISTRATION_FILE}")"
+if [ "${MAKEFILE_REG_COUNT}" -ne 1 ] || [ "${KCONFIG_REG_COUNT}" -ne 1 ]; then
+    echo "ERROR: expected exactly one registration entry each for board/Makefile and board/Kconfig"
+    exit 1
+fi
+MAKEFILE_REG_LINE="$(sed -n 's|.*board/Makefile:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
+MAKEFILE_REG_TEXT="$(sed -n 's|.*board/Makefile:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
+KCONFIG_REG_LINE="$(sed -n 's|.*board/Kconfig:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
+KCONFIG_REG_TEXT="$(sed -n 's|.*board/Kconfig:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
 for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LINE}" "${KCONFIG_REG_TEXT}"; do
     if [ -z "${required}" ]; then
         echo "ERROR: invalid registration metadata for gts8pwifi board integration"
@@ -176,8 +181,9 @@ fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
-make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
-make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
+JOBS="$(nproc)"
+make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
+make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
 
 install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
 ln -sf /usr/sbin/uniLoader /usr/sbin/uniloader
