@@ -22,6 +22,9 @@ actions:
       - yq
 {{- if ne $device "wip" }}
       - {{ $device }}-support
+{{- if eq $device "sm8450" }}
+      - uniloader
+{{- end }}
 {{- else }}
       - qcom-support-common
       - openssh-server
