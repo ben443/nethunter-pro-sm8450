@@ -17,11 +17,16 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-if [ "$(dpkg --print-architecture)" != "arm64" ]; then
-    echo "ERROR: uniLoader source build is only supported in arm64 chroot builds"
-    exit 1
+BUILD_ARCH="$(dpkg --print-architecture)"
+if [ "${BUILD_ARCH}" = "arm64" ]; then
+    CROSS_COMPILE_PREFIX=""
+else
+    CROSS_COMPILE_PREFIX="aarch64-linux-gnu-"
+    if ! command -v "${CROSS_COMPILE_PREFIX}gcc" >/dev/null 2>&1; then
+        echo "ERROR: missing cross-compiler ${CROSS_COMPILE_PREFIX}gcc for ${BUILD_ARCH} build"
+        exit 1
+    fi
 fi
-CROSS_COMPILE_PREFIX=""
 
 if [ -e /vmlinuz ]; then
     KERNEL_IMAGE="$(readlink -f /vmlinuz)"

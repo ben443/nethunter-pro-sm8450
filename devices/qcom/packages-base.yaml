@@ -26,6 +26,8 @@ actions:
       - git
       - make
       - gcc
+      - gcc-aarch64-linux-gnu
+      - binutils-aarch64-linux-gnu
       - libc6-dev
       - coreutils
       - bison
@@ -60,7 +62,7 @@ actions:
   - action: run
     chroot: true
     description: Install sm8450 support package when available
-    command: apt-cache show sm8450-support >/dev/null 2>&1 && apt-get install -y sm8450-support || true
+    command: if apt-cache show sm8450-support >/dev/null 2>&1; then apt-get install -y sm8450-support; else echo "sm8450-support package not available in configured repos; continuing with source-built uniLoader path"; fi
 
   - action: run
     chroot: true
