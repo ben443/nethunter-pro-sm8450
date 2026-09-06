@@ -34,18 +34,8 @@ fi
 KERNEL_VERSION="${KERNEL_IMAGE##*/vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
 
-SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-CONFIG_FILE="${SCRIPT_DIR}/configs/sm8450.toml"
-SOC="$(tomlq -r '.chipset' "${CONFIG_FILE}")"
-DTB_VENDOR="$(tomlq -r '.device[] | select(.model == "gts8wifi") | if .dtb_vendor then .dtb_vendor else .vendor end' "${CONFIG_FILE}")"
-DTB_MODEL="$(tomlq -r '.device[] | select(.model == "gts8wifi") | if .dtb_model then .dtb_model else .model end' "${CONFIG_FILE}")"
-DTB_VARIANT="$(tomlq -r '.device[] | select(.model == "gts8wifi") | if .dtb_variant then .dtb_variant else "" end' "${CONFIG_FILE}")"
-if [ -n "${DTB_VARIANT}" ]; then
-    DTB_FULLMODEL="${DTB_MODEL}-${DTB_VARIANT}"
-else
-    DTB_FULLMODEL="${DTB_MODEL}"
-fi
-DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/${SOC}-${DTB_VENDOR}-${DTB_FULLMODEL}.dtb"
+# Keep this in sync with devices/qcom/configs/sm8450.toml dtb_* mapping for gts8wifi.
+DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-galaxy-tab-s8-5g.dtb"
 
 for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}" "${DTB_IMAGE}"; do
     if [ ! -f "${file}" ]; then
@@ -89,6 +79,8 @@ grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile" || \
 mkdir -p "${WORKDIR}/uniLoader/blob"
 if gzip -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
     gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+elif xz -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
+    xzcat "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
 else
     cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
 fi

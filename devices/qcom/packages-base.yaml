@@ -30,6 +30,7 @@ actions:
       - bison
       - flex
       - wget
+      - xz-utils
 {{- else }}
       - {{ $device }}-support
 {{- end }}
