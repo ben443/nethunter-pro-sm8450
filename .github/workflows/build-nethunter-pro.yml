@@ -115,7 +115,7 @@ jobs:
           BUILD_ARGS: ${{ steps.args.outputs.value }}
         run: |
           set -euo pipefail
-          ./build.sh ${BUILD_ARGS}
+          sudo ./build.sh ${BUILD_ARGS}
 
       - name: List generated artifacts
         shell: bash
