@@ -21,6 +21,7 @@ if [ "$(dpkg --print-architecture)" != "arm64" ]; then
     echo "ERROR: uniLoader source build is only supported in arm64 chroot builds"
     exit 1
 fi
+CROSS_COMPILE_PREFIX=""
 
 if [ -e /vmlinuz ]; then
     KERNEL_IMAGE="$(readlink -f /vmlinuz)"
@@ -80,8 +81,21 @@ if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; th
     mv "${WORKDIR}/uniLoader/board/Kconfig.tmp" "${WORKDIR}/uniLoader/board/Kconfig"
 fi
 
-grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile" || \
-    echo 'lib-$(CONFIG_SAMSUNG_GTS8PWIFI) += samsung/board-gts8pwifi.o' >> "${WORKDIR}/uniLoader/board/Makefile"
+if ! grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile"; then
+    awk '
+        BEGIN { inserted=0 }
+        /^[[:space:]]*lib-\$\(CONFIG_SAMSUNG_GTA4XL\)[[:space:]]+\+=/ && inserted==0 {
+            print "lib-$(CONFIG_SAMSUNG_GTS8PWIFI) += samsung/board-gts8pwifi.o"
+            inserted=1
+        }
+        { print }
+        END { if (inserted==0) exit 1 }
+    ' "${WORKDIR}/uniLoader/board/Makefile" > "${WORKDIR}/uniLoader/board/Makefile.tmp" || {
+        echo "ERROR: failed to insert board-gts8pwifi.o into board/Makefile"
+        exit 1
+    }
+    mv "${WORKDIR}/uniLoader/board/Makefile.tmp" "${WORKDIR}/uniLoader/board/Makefile"
+fi
 
 mkdir -p "${WORKDIR}/uniLoader/blob"
 if gzip -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
@@ -96,8 +110,8 @@ fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
-make -C "${WORKDIR}/uniLoader" ARCH=arm64 CC=gcc gts8pwifi_defconfig
-make -C "${WORKDIR}/uniLoader" ARCH=arm64 CC=gcc
+make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
+make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
 
 install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
 ln -sf /usr/sbin/uniLoader /usr/sbin/uniloader
