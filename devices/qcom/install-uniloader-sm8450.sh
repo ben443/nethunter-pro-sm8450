@@ -81,7 +81,7 @@ if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ]; then
 fi
 RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
 
-for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}"; do
+for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}" "${DTB_IMAGE}"; do
     if [ ! -f "${file}" ]; then
         echo "ERROR: missing required input for uniLoader build: ${file}"
         exit 1
