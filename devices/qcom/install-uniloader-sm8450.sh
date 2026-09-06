@@ -34,10 +34,22 @@ fi
 KERNEL_VERSION="${KERNEL_IMAGE##*/vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
 
-# Keep this in sync with devices/qcom/configs/sm8450.toml dtb_* mapping for gts8wifi.
-DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-galaxy-tab-s8-5g.dtb"
+DTB_IMAGE=""
+for candidate in \
+    "/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8wifi.dtb" \
+    "/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-galaxy-tab-s8-5g.dtb"
+do
+    if [ -f "${candidate}" ]; then
+        DTB_IMAGE="${candidate}"
+        break
+    fi
+done
+if [ -z "${DTB_IMAGE}" ]; then
+    echo "ERROR: unable to locate SM8450 DTB for uniLoader build"
+    exit 1
+fi
 
-for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}" "${DTB_IMAGE}"; do
+for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}"; do
     if [ ! -f "${file}" ]; then
         echo "ERROR: missing required input for uniLoader build: ${file}"
         exit 1
@@ -81,14 +93,16 @@ if gzip -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
     gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
 elif xz -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
     xzcat "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+elif zstd -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
+    zstd -dc "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
 else
     cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
 fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
-make -C "${WORKDIR}/uniLoader" ARCH=aarch64 gts8pwifi_defconfig
-make -C "${WORKDIR}/uniLoader" ARCH=aarch64
+make -C "${WORKDIR}/uniLoader" ARCH=aarch64 CC=gcc gts8pwifi_defconfig
+make -C "${WORKDIR}/uniLoader" ARCH=aarch64 CC=gcc
 
 install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
 ln -sf /usr/sbin/uniLoader /usr/sbin/uniloader
