@@ -12,6 +12,8 @@ DEFCONFIG_FILE="configs/gts8pwifi_defconfig"
 DEFCONFIG_SHA256="23c622f0a93017c82de673fcfc2c01315f06ab74317a8bd56cfd04dc47fcdc66"
 REGISTRATION_FILE="REGISTRATION.txt"
 REGISTRATION_SHA256="52656f6b21b38488afcae99b1ca818b57eac4d1f974dc61c35287d659eddc0cd"
+KCONFIG_ANCHOR_TEXT="	config SAMSUNG_GTA4XL"
+MAKEFILE_ANCHOR_TEXT='lib-$(CONFIG_SAMSUNG_GTA4XL) += samsung/board-gta4xl.o'
 
 WORKDIR="$(mktemp -d /tmp/uniloader-sm8450.XXXXXX)"
 cleanup() {
@@ -172,9 +174,12 @@ for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LIN
 done
 
 if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/uniLoader/board/Kconfig"; then
-    awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" '
+    awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" -v anchor_text="${KCONFIG_ANCHOR_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
+            if ($0 != anchor_text) {
+                exit 2
+            }
             print
             gsub(/^[ \t]+/, "", reg_text)
             print reg_text
@@ -196,9 +201,12 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
 fi
 
 if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+samsung/board-gts8pwifi\.o$' "${WORKDIR}/uniLoader/board/Makefile"; then
-    awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" '
+    awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" -v anchor_text="${MAKEFILE_ANCHOR_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
+            if ($0 != anchor_text) {
+                exit 2
+            }
             print
             print reg_text
             inserted=1
