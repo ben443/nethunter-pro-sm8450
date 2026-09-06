@@ -193,10 +193,16 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
         }
         { print }
         END { if (inserted==0) exit 1 }
-    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp" || {
-        echo "ERROR: failed to insert SAMSUNG_GTS8PWIFI into board/Kconfig"
+    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp"
+    awk_rc=$?
+    if [ "${awk_rc}" -ne 0 ]; then
+        if [ "${awk_rc}" -eq 2 ]; then
+            echo "ERROR: board/Kconfig anchor content drift detected at line ${KCONFIG_REG_LINE}"
+        else
+            echo "ERROR: failed to locate board/Kconfig insertion point at line ${KCONFIG_REG_LINE}"
+        fi
         exit 1
-    }
+    fi
     mv "${WORKDIR}/uniLoader/board/Kconfig.tmp" "${WORKDIR}/uniLoader/board/Kconfig"
 fi
 
@@ -214,10 +220,16 @@ if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+sam
         }
         { print }
         END { if (inserted==0) exit 1 }
-    ' "${WORKDIR}/uniLoader/board/Makefile" > "${WORKDIR}/uniLoader/board/Makefile.tmp" || {
-        echo "ERROR: failed to insert board-gts8pwifi.o into board/Makefile"
+    ' "${WORKDIR}/uniLoader/board/Makefile" > "${WORKDIR}/uniLoader/board/Makefile.tmp"
+    awk_rc=$?
+    if [ "${awk_rc}" -ne 0 ]; then
+        if [ "${awk_rc}" -eq 2 ]; then
+            echo "ERROR: board/Makefile anchor content drift detected at line ${MAKEFILE_REG_LINE}"
+        else
+            echo "ERROR: failed to locate board/Makefile insertion point at line ${MAKEFILE_REG_LINE}"
+        fi
         exit 1
-    }
+    fi
     mv "${WORKDIR}/uniLoader/board/Makefile.tmp" "${WORKDIR}/uniLoader/board/Makefile"
 fi
 
