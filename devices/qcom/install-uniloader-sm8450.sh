@@ -106,7 +106,7 @@ PARSED_LINE=""
 PARSED_TEXT=""
 parse_registration_entry() {
     target_file="$1"
-    entry="$(grep "^reference/uniLoader/${target_file}:[0-9][0-9]*:" "${WORKDIR}/${REGISTRATION_FILE}" || true)"
+    entry="$(awk -F: -v target="reference/uniLoader/${target_file}" '$1 == target && $2 ~ /^[0-9]+$/ { print }' "${WORKDIR}/${REGISTRATION_FILE}")"
     count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
     if [ "${count}" -ne 1 ]; then
         echo "ERROR: expected exactly one registration entry for ${target_file}"
@@ -168,6 +168,10 @@ fi
 
 mkdir -p "${WORKDIR}/uniLoader/blob"
 if [ -f "${RAW_KERNEL_IMAGE}" ]; then
+    if [ ! -r "${RAW_KERNEL_IMAGE}" ] || [ ! -s "${RAW_KERNEL_IMAGE}" ]; then
+        echo "ERROR: raw kernel image exists but is unreadable or empty: ${RAW_KERNEL_IMAGE}"
+        exit 1
+    fi
     cp "${RAW_KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
 else
     KERNEL_FILE_TYPE="$(file -b "${KERNEL_IMAGE}" 2>/dev/null || true)"
@@ -209,7 +213,7 @@ fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
-JOBS="$(nproc)"
+JOBS="$(nproc 2>/dev/null || echo 1)"
 make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
 make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
 
