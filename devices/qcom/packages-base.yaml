@@ -23,6 +23,12 @@ actions:
 {{- if ne $device "wip" }}
 {{- if eq $device "sm8450" }}
       - qcom-support-common
+      - git
+      - make
+      - gcc
+      - libc6-dev
+      - bison
+      - flex
 {{- else }}
       - {{ $device }}-support
 {{- end }}
@@ -44,6 +50,13 @@ actions:
     description: Add droid-juicer configuration to image
     source: droid-juicer
     destination: /usr/share/droid-juicer/configs
+{{- end }}
+
+{{- if eq $device "sm8450" }}
+  - action: run
+    chroot: true
+    description: Build and install uniLoader from source
+    script: install-uniloader-sm8450.sh
 {{- end }}
 
   - action: run

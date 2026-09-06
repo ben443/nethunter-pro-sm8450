@@ -45,6 +45,8 @@ Example build command for Galaxy Tab S8 WiFi:
 ./build.sh -t sm8450
 ```
 
+For `sm8450` targets, the build now compiles and installs `uniLoader` from source during image creation.
+
 Building with disk encryption support will also require the package `cryptsetup` to be installed
 on your host.
 
