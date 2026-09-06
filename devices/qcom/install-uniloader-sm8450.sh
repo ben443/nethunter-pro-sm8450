@@ -288,7 +288,7 @@ fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
-JOBS="$(nproc 2>/dev/null || echo 1)"
+JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
 make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
 make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
 
