@@ -30,6 +30,7 @@ actions:
       - binutils-aarch64-linux-gnu
       - libc6-dev
       - coreutils
+      - file
       - bison
       - flex
       - wget

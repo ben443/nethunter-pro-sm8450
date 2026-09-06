@@ -39,6 +39,9 @@ if [ -z "${KERNEL_IMAGE}" ] || [ ! -f "${KERNEL_IMAGE}" ]; then
 fi
 KERNEL_VERSION="${KERNEL_IMAGE##*/vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
+if [ ! -f "${RAMDISK_IMAGE}" ]; then
+    RAMDISK_IMAGE="/boot/initramfs-${KERNEL_VERSION}.img"
+fi
 
 DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8wifi.dtb"
 if [ ! -f "${DTB_IMAGE}" ]; then
@@ -103,15 +106,21 @@ if ! grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile"; then
 fi
 
 mkdir -p "${WORKDIR}/uniLoader/blob"
-if gzip -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
-    gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
-elif xz -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
-    xzcat "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
-elif zstd -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
-    zstd -dc "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
-else
-    cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
-fi
+KERNEL_FILE_TYPE="$(file -b "${KERNEL_IMAGE}" 2>/dev/null || true)"
+case "${KERNEL_FILE_TYPE}" in
+    *"gzip compressed"*)
+        gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+        ;;
+    *"XZ compressed"*)
+        xzcat "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+        ;;
+    *"Zstandard compressed"*)
+        zstd -dc "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+        ;;
+    *)
+        cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
+        ;;
+esac
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
