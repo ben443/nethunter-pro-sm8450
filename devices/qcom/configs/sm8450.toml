@@ -9,3 +9,9 @@ pagesize = 4096
 [[device]]
 vendor = "galaxy"
 model = "tab-s8-5g"
+
+[[device]]
+vendor = "samsung"
+model = "gts8wifi"
+dtb_vendor = "galaxy"
+dtb_model = "tab-s8-5g"
