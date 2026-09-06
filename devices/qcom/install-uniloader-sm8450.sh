@@ -30,23 +30,33 @@ else
     fi
 fi
 
+KERNEL_IMAGE=""
 if [ -e /vmlinuz ]; then
     KERNEL_IMAGE="$(readlink -f /vmlinuz)"
-else
+    case "$(basename "${KERNEL_IMAGE}")" in
+        vmlinuz-*)
+            ;;
+        *)
+            KERNEL_IMAGE=""
+            ;;
+    esac
+fi
+if [ -z "${KERNEL_IMAGE}" ]; then
     KERNEL_IMAGE="$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort | tail -1)"
 fi
 if [ -z "${KERNEL_IMAGE}" ] || [ ! -f "${KERNEL_IMAGE}" ]; then
     echo "ERROR: unable to detect installed kernel image"
     exit 1
 fi
-KERNEL_VERSION="${KERNEL_IMAGE##*/vmlinuz-}"
+KERNEL_BASENAME="$(basename "${KERNEL_IMAGE}")"
+KERNEL_VERSION="${KERNEL_BASENAME#vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
 if [ ! -f "${RAMDISK_IMAGE}" ]; then
     RAMDISK_IMAGE="/boot/initramfs-${KERNEL_VERSION}.img"
 fi
 RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
 
-DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8wifi.dtb"
+DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8pwifi.dtb"
 if [ ! -f "${DTB_IMAGE}" ]; then
     echo "ERROR: unable to locate SM8450 DTB for uniLoader build"
     exit 1
