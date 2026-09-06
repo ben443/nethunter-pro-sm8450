@@ -102,16 +102,26 @@ echo "${BOARD_SHA256}  ${WORKDIR}/uniLoader/${BOARD_FILE}" | sha256sum -c -
 echo "${DEFCONFIG_SHA256}  ${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" | sha256sum -c -
 echo "${REGISTRATION_SHA256}  ${WORKDIR}/${REGISTRATION_FILE}" | sha256sum -c -
 
-MAKEFILE_REG_COUNT="$(grep -c '^reference/uniLoader/board/Makefile:' "${WORKDIR}/${REGISTRATION_FILE}")"
-KCONFIG_REG_COUNT="$(grep -c '^reference/uniLoader/board/Kconfig:' "${WORKDIR}/${REGISTRATION_FILE}")"
-if [ "${MAKEFILE_REG_COUNT}" -ne 1 ] || [ "${KCONFIG_REG_COUNT}" -ne 1 ]; then
-    echo "ERROR: expected exactly one registration entry each for board/Makefile and board/Kconfig"
-    exit 1
-fi
-MAKEFILE_REG_LINE="$(sed -n 's|^reference/uniLoader/board/Makefile:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
-MAKEFILE_REG_TEXT="$(sed -n 's|^reference/uniLoader/board/Makefile:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
-KCONFIG_REG_LINE="$(sed -n 's|^reference/uniLoader/board/Kconfig:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
-KCONFIG_REG_TEXT="$(sed -n 's|^reference/uniLoader/board/Kconfig:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
+PARSED_LINE=""
+PARSED_TEXT=""
+parse_registration_entry() {
+    target_file="$1"
+    entry="$(grep "^reference/uniLoader/${target_file}:[0-9][0-9]*:" "${WORKDIR}/${REGISTRATION_FILE}" || true)"
+    count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
+    if [ "${count}" -ne 1 ]; then
+        echo "ERROR: expected exactly one registration entry for ${target_file}"
+        exit 1
+    fi
+    PARSED_LINE="$(printf '%s\n' "${entry}" | cut -d: -f2)"
+    PARSED_TEXT="$(printf '%s\n' "${entry}" | cut -d: -f3-)"
+}
+
+parse_registration_entry "board/Makefile"
+MAKEFILE_REG_LINE="${PARSED_LINE}"
+MAKEFILE_REG_TEXT="${PARSED_TEXT}"
+parse_registration_entry "board/Kconfig"
+KCONFIG_REG_LINE="${PARSED_LINE}"
+KCONFIG_REG_TEXT="${PARSED_TEXT}"
 for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LINE}" "${KCONFIG_REG_TEXT}"; do
     if [ -z "${required}" ]; then
         echo "ERROR: invalid registration metadata for gts8pwifi board integration"
@@ -119,7 +129,7 @@ for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LIN
     fi
 done
 
-if ! grep -Fxq "${KCONFIG_REG_TEXT}" "${WORKDIR}/uniLoader/board/Kconfig"; then
+if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/uniLoader/board/Kconfig"; then
     awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
@@ -140,7 +150,7 @@ if ! grep -Fxq "${KCONFIG_REG_TEXT}" "${WORKDIR}/uniLoader/board/Kconfig"; then
     mv "${WORKDIR}/uniLoader/board/Kconfig.tmp" "${WORKDIR}/uniLoader/board/Kconfig"
 fi
 
-if ! grep -Fxq "${MAKEFILE_REG_TEXT}" "${WORKDIR}/uniLoader/board/Makefile"; then
+if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+samsung/board-gts8pwifi\.o$' "${WORKDIR}/uniLoader/board/Makefile"; then
     awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
