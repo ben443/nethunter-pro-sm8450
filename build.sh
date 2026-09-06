@@ -86,7 +86,7 @@ case "${device}" in
     family="librem5"
     ARGS="${ARGS} -t nonfree:true"
     ;;
-  "sdm845"|"sdm670"|"sm6350"|"sc7280"|"qcom-wip" )
+  "sdm845"|"sdm670"|"sm6350"|"sc7280"|"sm8450"|"qcom-wip" )
     if [ "${device}" = "qcom-wip" ]; then
       device="wip"
     fi
