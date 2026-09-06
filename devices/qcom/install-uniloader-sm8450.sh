@@ -89,7 +89,11 @@ if [ -e /vmlinuz ]; then
     consider_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
-    find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    for candidate in /boot/vmlinuz-*; do
+        if [ -f "${candidate}" ]; then
+            printf '%s\n' "${candidate}"
+        fi
+    done | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
     while IFS= read -r candidate; do
         if consider_candidate "${candidate}"; then
             break
@@ -136,14 +140,22 @@ PARSED_LINE=""
 PARSED_TEXT=""
 parse_registration_entry() {
     target_file="$1"
-    entry="$(awk -F: -v target="reference/uniLoader/${target_file}" '$1 == target && $2 ~ /^[0-9][0-9]*$/ { print }' "${WORKDIR}/${REGISTRATION_FILE}")"
+    prefix="reference/uniLoader/${target_file}:"
+    entry="$(grep -F "${prefix}" "${WORKDIR}/${REGISTRATION_FILE}" | sed '/^$/d')"
     count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
     if [ "${count}" -ne 1 ]; then
         echo "ERROR: expected exactly one registration entry for ${target_file}"
         exit 1
     fi
-    PARSED_LINE="$(printf '%s\n' "${entry}" | sed -n 's|^.*:\([0-9][0-9]*\):.*$|\1|p')"
-    PARSED_TEXT="$(printf '%s\n' "${entry}" | sed -n 's|^.*:[0-9][0-9]*:||p')"
+    line_and_text="${entry#${prefix}}"
+    PARSED_LINE="${line_and_text%%:*}"
+    PARSED_TEXT="${line_and_text#${PARSED_LINE}:}"
+    case "${PARSED_LINE}" in
+        ''|*[!0-9]*)
+            echo "ERROR: invalid registration line number for ${target_file}: ${PARSED_LINE}"
+            exit 1
+            ;;
+    esac
 }
 
 parse_registration_entry "board/Makefile"
