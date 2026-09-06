@@ -52,6 +52,9 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     MODEL=$(tomlq -r ".device[$i].model" ${CONFIG})
     VARIANT=$(tomlq -r "if .device[$i].variant then .device[$i].variant else \"\" end" ${CONFIG})
     DEVICE_SOC=$(tomlq -r "if .device[$i].chipset then .device[$i].chipset else \"${SOC}\" end" ${CONFIG})
+    DTB_VENDOR=$(tomlq -r "if .device[$i].dtb_vendor then .device[$i].dtb_vendor else \"${VENDOR}\" end" ${CONFIG})
+    DTB_MODEL=$(tomlq -r "if .device[$i].dtb_model then .device[$i].dtb_model else \"${MODEL}\" end" ${CONFIG})
+    DTB_VARIANT=$(tomlq -r "if .device[$i].dtb_variant then .device[$i].dtb_variant else \"${VARIANT}\" end" ${CONFIG})
     APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" ${CONFIG})
     # Extract device-specific bootimg parameters in JSON format for processing by `bootimg_offsets()`
     DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" ${CONFIG})
@@ -63,7 +66,12 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     else
         FULLMODEL="${MODEL}"
     fi
-    DTB_FILE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/${DEVICE_SOC}-${VENDOR}-${FULLMODEL}.dtb"
+    if [ "${DTB_VARIANT}" ]; then
+        DTB_FULLMODEL="${DTB_MODEL}-${DTB_VARIANT}"
+    else
+        DTB_FULLMODEL="${DTB_MODEL}"
+    fi
+    DTB_FILE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/${DEVICE_SOC}-${DTB_VENDOR}-${DTB_FULLMODEL}.dtb"
 
     LOGLEVEL="quiet"
     # Include additional cmdline args if specified

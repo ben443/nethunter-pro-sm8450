@@ -31,6 +31,22 @@ are required, which you can install with the following command:
 sudo apt install android-sdk-libsparse-utils yq mkbootimg
 ```
 
+### Qualcomm targets
+
+- `sc7280`
+- `sdm670`
+- `sdm845`
+- `sm6350`
+- `sm8450` (Samsung Galaxy Tab S8 WiFi, `gts8wifi`)
+
+Example build command for Galaxy Tab S8 WiFi:
+
+```
+./build.sh -t sm8450
+```
+
+For `sm8450` targets, this repository now includes `uniloader` in device base packages to match the current postmarketOS boot flow.
+
 Building with disk encryption support will also require the package `cryptsetup` to be installed
 on your host.
 
