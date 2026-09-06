@@ -141,7 +141,7 @@ PARSED_TEXT=""
 parse_registration_entry() {
     target_file="$1"
     prefix="reference/uniLoader/${target_file}:"
-    entry="$(grep -F "${prefix}" "${WORKDIR}/${REGISTRATION_FILE}" | sed '/^$/d')"
+    entry="$(awk -v prefix="${prefix}" 'index($0, prefix) == 1 { print }' "${WORKDIR}/${REGISTRATION_FILE}")"
     count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
     if [ "${count}" -ne 1 ]; then
         echo "ERROR: expected exactly one registration entry for ${target_file}"
@@ -175,12 +175,13 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
     awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
+            gsub(/^[ \t]+/, "", reg_text)
             print reg_text
-            print "\t\tbool \"Support for Samsung Galaxy Tab S8 WiFi\""
-            print "\t\tdefault n"
-            print "\t\tdepends on SM8450"
-            print "\t\thelp"
-            print "\t\t  Say Y if you want to include support for Samsung Galaxy Tab S8 WiFi"
+            print "\tbool \"Support for Samsung Galaxy Tab S8 WiFi\""
+            print "\tdefault n"
+            print "\tdepends on SM8450"
+            print "\thelp"
+            print "\t  Say Y if you want to include support for Samsung Galaxy Tab S8 WiFi"
             inserted=1
         }
         { print }
