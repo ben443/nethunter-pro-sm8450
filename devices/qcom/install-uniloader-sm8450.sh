@@ -17,6 +17,11 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
+if [ "$(dpkg --print-architecture)" != "arm64" ]; then
+    echo "ERROR: uniLoader source build is only supported in arm64 chroot builds"
+    exit 1
+fi
+
 if [ -e /vmlinuz ]; then
     KERNEL_IMAGE="$(readlink -f /vmlinuz)"
 else
@@ -28,7 +33,19 @@ if [ -z "${KERNEL_IMAGE}" ] || [ ! -f "${KERNEL_IMAGE}" ]; then
 fi
 KERNEL_VERSION="${KERNEL_IMAGE##*/vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
-DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-galaxy-tab-s8-5g.dtb"
+
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+CONFIG_FILE="${SCRIPT_DIR}/configs/sm8450.toml"
+SOC="$(tomlq -r '.chipset' "${CONFIG_FILE}")"
+DTB_VENDOR="$(tomlq -r '.device[] | select(.model == "gts8wifi") | if .dtb_vendor then .dtb_vendor else .vendor end' "${CONFIG_FILE}")"
+DTB_MODEL="$(tomlq -r '.device[] | select(.model == "gts8wifi") | if .dtb_model then .dtb_model else .model end' "${CONFIG_FILE}")"
+DTB_VARIANT="$(tomlq -r '.device[] | select(.model == "gts8wifi") | if .dtb_variant then .dtb_variant else "" end' "${CONFIG_FILE}")"
+if [ -n "${DTB_VARIANT}" ]; then
+    DTB_FULLMODEL="${DTB_MODEL}-${DTB_VARIANT}"
+else
+    DTB_FULLMODEL="${DTB_MODEL}"
+fi
+DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/${SOC}-${DTB_VENDOR}-${DTB_FULLMODEL}.dtb"
 
 for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}" "${DTB_IMAGE}"; do
     if [ ! -f "${file}" ]; then
@@ -49,12 +66,22 @@ wget -q -O "${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" "${PORT_BASE_URL}/${DEFCONFI
 echo "${BOARD_SHA256}  ${WORKDIR}/uniLoader/${BOARD_FILE}" | sha256sum -c -
 echo "${DEFCONFIG_SHA256}  ${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" | sha256sum -c -
 
-grep -q "SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig" || cat >> "${WORKDIR}/uniLoader/board/Kconfig" <<'EOF'
-config SAMSUNG_GTS8PWIFI
-	bool "Samsung Galaxy Tab S8 WiFi board support"
-	help
-	  Enable support for Samsung Galaxy Tab S8 WiFi (gts8pwifi) in uniLoader.
-EOF
+if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; then
+    awk '
+        BEGIN { inserted=0 }
+        /^endmenu$/ && inserted==0 {
+            print "\tconfig SAMSUNG_GTS8PWIFI"
+            print "\t\tbool \"Support for Samsung Galaxy Tab S8 WiFi\""
+            print "\t\tdefault n"
+            print "\t\tdepends on SM8450"
+            print "\t\thelp"
+            print "\t\t  Say Y if you want to include support for Samsung Galaxy Tab S8 WiFi"
+            inserted=1
+        }
+        { print }
+    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp"
+    mv "${WORKDIR}/uniLoader/board/Kconfig.tmp" "${WORKDIR}/uniLoader/board/Kconfig"
+fi
 
 grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile" || \
     echo 'lib-$(CONFIG_SAMSUNG_GTS8PWIFI) += samsung/board-gts8pwifi.o' >> "${WORKDIR}/uniLoader/board/Makefile"
