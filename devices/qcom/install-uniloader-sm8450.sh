@@ -175,9 +175,10 @@ done
 
 if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/uniLoader/board/Kconfig"; then
     if awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" -v anchor_text="${KCONFIG_ANCHOR_TEXT}" '
-        BEGIN { inserted=0 }
+        BEGIN { inserted=0; drift=0 }
         NR==line && inserted==0 {
             if ($0 != anchor_text) {
+                drift=1
                 exit 2
             }
             print
@@ -192,7 +193,7 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
             next
         }
         { print }
-        END { if (inserted==0) exit 1 }
+        END { if (inserted==0 && drift==0) exit 1 }
     ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp"; then
         :
     else
@@ -209,9 +210,10 @@ fi
 
 if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+samsung/board-gts8pwifi\.o$' "${WORKDIR}/uniLoader/board/Makefile"; then
     if awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" -v anchor_text="${MAKEFILE_ANCHOR_TEXT}" '
-        BEGIN { inserted=0 }
+        BEGIN { inserted=0; drift=0 }
         NR==line && inserted==0 {
             if ($0 != anchor_text) {
+                drift=1
                 exit 2
             }
             print
@@ -220,7 +222,7 @@ if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+sam
             next
         }
         { print }
-        END { if (inserted==0) exit 1 }
+        END { if (inserted==0 && drift==0) exit 1 }
     ' "${WORKDIR}/uniLoader/board/Makefile" > "${WORKDIR}/uniLoader/board/Makefile.tmp"; then
         :
     else
