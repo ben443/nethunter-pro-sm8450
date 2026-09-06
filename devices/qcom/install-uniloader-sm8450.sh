@@ -174,7 +174,7 @@ for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LIN
 done
 
 if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/uniLoader/board/Kconfig"; then
-    awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" -v anchor_text="${KCONFIG_ANCHOR_TEXT}" '
+    if awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" -v anchor_text="${KCONFIG_ANCHOR_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
             if ($0 != anchor_text) {
@@ -193,9 +193,10 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
         }
         { print }
         END { if (inserted==0) exit 1 }
-    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp"
-    awk_rc=$?
-    if [ "${awk_rc}" -ne 0 ]; then
+    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp"; then
+        :
+    else
+        awk_rc=$?
         if [ "${awk_rc}" -eq 2 ]; then
             echo "ERROR: board/Kconfig anchor content drift detected at line ${KCONFIG_REG_LINE}"
         else
@@ -207,7 +208,7 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
 fi
 
 if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+samsung/board-gts8pwifi\.o$' "${WORKDIR}/uniLoader/board/Makefile"; then
-    awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" -v anchor_text="${MAKEFILE_ANCHOR_TEXT}" '
+    if awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" -v anchor_text="${MAKEFILE_ANCHOR_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
             if ($0 != anchor_text) {
@@ -220,9 +221,10 @@ if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+sam
         }
         { print }
         END { if (inserted==0) exit 1 }
-    ' "${WORKDIR}/uniLoader/board/Makefile" > "${WORKDIR}/uniLoader/board/Makefile.tmp"
-    awk_rc=$?
-    if [ "${awk_rc}" -ne 0 ]; then
+    ' "${WORKDIR}/uniLoader/board/Makefile" > "${WORKDIR}/uniLoader/board/Makefile.tmp"; then
+        :
+    else
+        awk_rc=$?
         if [ "${awk_rc}" -eq 2 ]; then
             echo "ERROR: board/Makefile anchor content drift detected at line ${MAKEFILE_REG_LINE}"
         else
