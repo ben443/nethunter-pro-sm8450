@@ -106,14 +106,18 @@ PARSED_LINE=""
 PARSED_TEXT=""
 parse_registration_entry() {
     target_file="$1"
-    entry="$(awk -F: -v target="reference/uniLoader/${target_file}" '$1 == target && $2 ~ /^[0-9]+$/ { print }' "${WORKDIR}/${REGISTRATION_FILE}")"
+    entry="$(awk -v target="reference/uniLoader/${target_file}" '
+        match($0, /^(.*):([0-9]+):(.*)$/, m) && m[1] == target {
+            print m[2] "\t" m[3]
+        }
+    ' "${WORKDIR}/${REGISTRATION_FILE}")"
     count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
     if [ "${count}" -ne 1 ]; then
         echo "ERROR: expected exactly one registration entry for ${target_file}"
         exit 1
     fi
-    PARSED_LINE="$(printf '%s\n' "${entry}" | cut -d: -f2)"
-    PARSED_TEXT="$(printf '%s\n' "${entry}" | cut -d: -f3-)"
+    PARSED_LINE="$(printf '%s\n' "${entry}" | cut -f1)"
+    PARSED_TEXT="$(printf '%s\n' "${entry}" | cut -f2-)"
 }
 
 parse_registration_entry "board/Makefile"

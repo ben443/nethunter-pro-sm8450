@@ -34,6 +34,7 @@ actions:
       - file
       - bison
       - flex
+      - gzip
       - wget
       - xz-utils
       - zstd
