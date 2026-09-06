@@ -175,6 +175,7 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
     awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
+            print
             gsub(/^[ \t]+/, "", reg_text)
             print reg_text
             print "\tbool \"Support for Samsung Galaxy Tab S8 WiFi\""
@@ -183,6 +184,7 @@ if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/un
             print "\thelp"
             print "\t  Say Y if you want to include support for Samsung Galaxy Tab S8 WiFi"
             inserted=1
+            next
         }
         { print }
         END { if (inserted==0) exit 1 }
