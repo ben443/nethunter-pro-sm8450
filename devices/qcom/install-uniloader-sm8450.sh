@@ -35,6 +35,28 @@ KERNEL_VERSION=""
 RAMDISK_IMAGE=""
 DTB_IMAGE=""
 
+resolve_vmlinuz_path() {
+    path="/vmlinuz"
+    if command -v readlink >/dev/null 2>&1; then
+        resolved="$(readlink -f "${path}" 2>/dev/null || true)"
+        if [ -n "${resolved}" ]; then
+            printf '%s\n' "${resolved}"
+            return
+        fi
+        if [ -L "${path}" ]; then
+            link_target="$(readlink "${path}" 2>/dev/null || true)"
+            if [ -n "${link_target}" ]; then
+                case "${link_target}" in
+                    /*) printf '%s\n' "${link_target}" ;;
+                    *) printf '%s\n' "$(dirname "${path}")/${link_target}" ;;
+                esac
+                return
+            fi
+        fi
+    fi
+    printf '%s\n' "${path}"
+}
+
 consider_candidate() {
     candidate="$1"
     base="$(basename "${candidate}")"
@@ -64,7 +86,7 @@ consider_candidate() {
 }
 
 if [ -e /vmlinuz ]; then
-    consider_candidate "$(readlink -f /vmlinuz)" || true
+    consider_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
     find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
@@ -106,18 +128,14 @@ PARSED_LINE=""
 PARSED_TEXT=""
 parse_registration_entry() {
     target_file="$1"
-    entry="$(awk -v target="reference/uniLoader/${target_file}" '
-        match($0, /^(.*):([0-9]+):(.*)$/, m) && m[1] == target {
-            print m[2] "\t" m[3]
-        }
-    ' "${WORKDIR}/${REGISTRATION_FILE}")"
+    entry="$(grep "^reference/uniLoader/${target_file}:[0-9][0-9]*:" "${WORKDIR}/${REGISTRATION_FILE}" || true)"
     count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
     if [ "${count}" -ne 1 ]; then
         echo "ERROR: expected exactly one registration entry for ${target_file}"
         exit 1
     fi
-    PARSED_LINE="$(printf '%s\n' "${entry}" | cut -f1)"
-    PARSED_TEXT="$(printf '%s\n' "${entry}" | cut -f2-)"
+    PARSED_LINE="$(printf '%s\n' "${entry}" | sed -n 's|^.*:\([0-9][0-9]*\):.*$|\1|p')"
+    PARSED_TEXT="$(printf '%s\n' "${entry}" | sed -n 's|^.*:[0-9][0-9]*:||p')"
 }
 
 parse_registration_entry "board/Makefile"
