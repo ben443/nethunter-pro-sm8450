@@ -1,3 +1,5 @@
+chipset = "sm8450"
+
 [bootimg]
 base = 0x0
 kernel = 0x8000
