@@ -45,8 +45,6 @@ Example build command for Galaxy Tab S8 WiFi:
 ./build.sh -t sm8450
 ```
 
-For `sm8450` targets, this repository now includes `uniloader` in device base packages to match the current postmarketOS boot flow.
-
 Building with disk encryption support will also require the package `cryptsetup` to be installed
 on your host.
 

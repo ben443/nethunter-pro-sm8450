@@ -21,9 +21,10 @@ actions:
       - gstreamer1.0-plugins-base-apps
       - yq
 {{- if ne $device "wip" }}
-      - {{ $device }}-support
 {{- if eq $device "sm8450" }}
-      - uniloader
+      - qcom-support-common
+{{- else }}
+      - {{ $device }}-support
 {{- end }}
 {{- else }}
       - qcom-support-common
