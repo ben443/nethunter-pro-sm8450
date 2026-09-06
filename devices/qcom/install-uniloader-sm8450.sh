@@ -2,8 +2,9 @@
 
 set -eu
 
-UL_REPO="https://github.com/ivoszbg/uniLoader.git"
 UL_COMMIT="43770a04327532407194ddd3f9f35770daa01c70"
+UL_ARCHIVE_URL="https://github.com/ivoszbg/uniLoader/archive/${UL_COMMIT}.tar.gz"
+UL_ARCHIVE_SHA256="b4a01cc3f6b4ea39a5becdb9b37549bf75438504807676d2f0a87bf9ef0cbb93"
 PORT_REPO_REF="c663da1b06c8e660a1dee107cfa26511080a8819"
 PORT_BASE_URL="https://raw.githubusercontent.com/aaronsb/sm-x800-linux/${PORT_REPO_REF}/pmaports-overlay/uniloader-port"
 BOARD_FILE="board/samsung/board-gts8pwifi.c"
@@ -124,19 +125,26 @@ for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}" "${DTB_IMAGE}"; do
     fi
 done
 
-git init -q "${WORKDIR}/uniLoader"
-git -C "${WORKDIR}/uniLoader" remote add origin "${UL_REPO}"
-git -C "${WORKDIR}/uniLoader" fetch -q --depth 1 origin "${UL_COMMIT}"
-git -C "${WORKDIR}/uniLoader" checkout -q FETCH_HEAD
+UL_ARCHIVE_TMP="${WORKDIR}/uniLoader-${UL_COMMIT}.tar.gz.tmp"
+wget -q -O "${UL_ARCHIVE_TMP}" "${UL_ARCHIVE_URL}"
+echo "${UL_ARCHIVE_SHA256}  ${UL_ARCHIVE_TMP}" | sha256sum -c -
+tar -xzf "${UL_ARCHIVE_TMP}" -C "${WORKDIR}"
+mv "${WORKDIR}/uniLoader-${UL_COMMIT}" "${WORKDIR}/uniLoader"
 
 mkdir -p "${WORKDIR}/uniLoader/board/samsung" "${WORKDIR}/uniLoader/configs"
-wget -q -O "${WORKDIR}/uniLoader/${BOARD_FILE}" "${PORT_BASE_URL}/${BOARD_FILE}"
-wget -q -O "${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" "${PORT_BASE_URL}/${DEFCONFIG_FILE}"
-wget -q -O "${WORKDIR}/${REGISTRATION_FILE}" "${PORT_BASE_URL}/${REGISTRATION_FILE}"
+BOARD_TMP="${WORKDIR}/board-gts8pwifi.c.tmp"
+DEFCONFIG_TMP="${WORKDIR}/gts8pwifi_defconfig.tmp"
+REGISTRATION_TMP="${WORKDIR}/${REGISTRATION_FILE}.tmp"
+wget -q -O "${BOARD_TMP}" "${PORT_BASE_URL}/${BOARD_FILE}"
+wget -q -O "${DEFCONFIG_TMP}" "${PORT_BASE_URL}/${DEFCONFIG_FILE}"
+wget -q -O "${REGISTRATION_TMP}" "${PORT_BASE_URL}/${REGISTRATION_FILE}"
 
-echo "${BOARD_SHA256}  ${WORKDIR}/uniLoader/${BOARD_FILE}" | sha256sum -c -
-echo "${DEFCONFIG_SHA256}  ${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" | sha256sum -c -
-echo "${REGISTRATION_SHA256}  ${WORKDIR}/${REGISTRATION_FILE}" | sha256sum -c -
+echo "${BOARD_SHA256}  ${BOARD_TMP}" | sha256sum -c -
+echo "${DEFCONFIG_SHA256}  ${DEFCONFIG_TMP}" | sha256sum -c -
+echo "${REGISTRATION_SHA256}  ${REGISTRATION_TMP}" | sha256sum -c -
+mv "${BOARD_TMP}" "${WORKDIR}/uniLoader/${BOARD_FILE}"
+mv "${DEFCONFIG_TMP}" "${WORKDIR}/uniLoader/${DEFCONFIG_FILE}"
+mv "${REGISTRATION_TMP}" "${WORKDIR}/${REGISTRATION_FILE}"
 
 PARSED_LINE=""
 PARSED_TEXT=""

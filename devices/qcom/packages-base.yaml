@@ -23,7 +23,6 @@ actions:
 {{- if ne $device "wip" }}
 {{- if eq $device "sm8450" }}
       - qcom-support-common
-      - git
       - make
       - gcc
       - binutils
