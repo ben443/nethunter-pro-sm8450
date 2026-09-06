@@ -32,17 +32,18 @@ fi
 
 KERNEL_IMAGE=""
 KERNEL_VERSION=""
-for candidate in \
-    $(if [ -e /vmlinuz ]; then readlink -f /vmlinuz; fi) \
-    $(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort -Vr)
-do
+RAMDISK_IMAGE=""
+DTB_IMAGE=""
+
+consider_candidate() {
+    candidate="$1"
     base="$(basename "${candidate}")"
     case "${base}" in
         vmlinuz-*)
             version="${base#vmlinuz-}"
             ;;
         *)
-            continue
+            return 1
             ;;
     esac
 
@@ -57,9 +58,22 @@ do
         KERNEL_VERSION="${version}"
         RAMDISK_IMAGE="${ramdisk_candidate}"
         DTB_IMAGE="${dtb_candidate}"
-        break
+        return 0
     fi
-done
+    return 1
+}
+
+if [ -e /vmlinuz ]; then
+    consider_candidate "$(readlink -f /vmlinuz)" || true
+fi
+if [ -z "${KERNEL_IMAGE}" ]; then
+    find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    while IFS= read -r candidate; do
+        if consider_candidate "${candidate}"; then
+            break
+        fi
+    done < "${WORKDIR}/kernel-candidates.txt"
+fi
 
 if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ]; then
     echo "ERROR: unable to locate matching kernel, ramdisk, and DTB artifacts for sm8450"
@@ -88,16 +102,16 @@ echo "${BOARD_SHA256}  ${WORKDIR}/uniLoader/${BOARD_FILE}" | sha256sum -c -
 echo "${DEFCONFIG_SHA256}  ${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" | sha256sum -c -
 echo "${REGISTRATION_SHA256}  ${WORKDIR}/${REGISTRATION_FILE}" | sha256sum -c -
 
-MAKEFILE_REG_COUNT="$(grep -c 'board/Makefile:' "${WORKDIR}/${REGISTRATION_FILE}")"
-KCONFIG_REG_COUNT="$(grep -c 'board/Kconfig:' "${WORKDIR}/${REGISTRATION_FILE}")"
+MAKEFILE_REG_COUNT="$(grep -c '^reference/uniLoader/board/Makefile:' "${WORKDIR}/${REGISTRATION_FILE}")"
+KCONFIG_REG_COUNT="$(grep -c '^reference/uniLoader/board/Kconfig:' "${WORKDIR}/${REGISTRATION_FILE}")"
 if [ "${MAKEFILE_REG_COUNT}" -ne 1 ] || [ "${KCONFIG_REG_COUNT}" -ne 1 ]; then
     echo "ERROR: expected exactly one registration entry each for board/Makefile and board/Kconfig"
     exit 1
 fi
-MAKEFILE_REG_LINE="$(sed -n 's|.*board/Makefile:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
-MAKEFILE_REG_TEXT="$(sed -n 's|.*board/Makefile:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
-KCONFIG_REG_LINE="$(sed -n 's|.*board/Kconfig:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
-KCONFIG_REG_TEXT="$(sed -n 's|.*board/Kconfig:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
+MAKEFILE_REG_LINE="$(sed -n 's|^reference/uniLoader/board/Makefile:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
+MAKEFILE_REG_TEXT="$(sed -n 's|^reference/uniLoader/board/Makefile:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
+KCONFIG_REG_LINE="$(sed -n 's|^reference/uniLoader/board/Kconfig:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}")"
+KCONFIG_REG_TEXT="$(sed -n 's|^reference/uniLoader/board/Kconfig:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}")"
 for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LINE}" "${KCONFIG_REG_TEXT}"; do
     if [ -z "${required}" ]; then
         echo "ERROR: invalid registration metadata for gts8pwifi board integration"
