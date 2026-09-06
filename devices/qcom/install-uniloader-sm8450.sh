@@ -210,7 +210,7 @@ cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
 JOBS="$(nproc)"
-make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
+make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
 make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
 
 install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
