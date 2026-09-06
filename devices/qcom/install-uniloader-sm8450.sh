@@ -102,6 +102,14 @@ if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ]; then
     exit 1
 fi
 RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
+if [ -e "${RAW_KERNEL_IMAGE}" ] && [ ! -f "${RAW_KERNEL_IMAGE}" ]; then
+    echo "ERROR: raw kernel image path is not a regular file: ${RAW_KERNEL_IMAGE}"
+    exit 1
+fi
+if [ -e "${RAW_KERNEL_IMAGE}" ] && { [ ! -r "${RAW_KERNEL_IMAGE}" ] || [ ! -s "${RAW_KERNEL_IMAGE}" ]; }; then
+    echo "ERROR: raw kernel image exists but is unreadable or empty: ${RAW_KERNEL_IMAGE}"
+    exit 1
+fi
 
 for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}" "${DTB_IMAGE}"; do
     if [ ! -f "${file}" ]; then
@@ -128,7 +136,7 @@ PARSED_LINE=""
 PARSED_TEXT=""
 parse_registration_entry() {
     target_file="$1"
-    entry="$(grep "^reference/uniLoader/${target_file}:[0-9][0-9]*:" "${WORKDIR}/${REGISTRATION_FILE}" || true)"
+    entry="$(awk -F: -v target="reference/uniLoader/${target_file}" '$1 == target && $2 ~ /^[0-9][0-9]*$/ { print }' "${WORKDIR}/${REGISTRATION_FILE}")"
     count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
     if [ "${count}" -ne 1 ]; then
         echo "ERROR: expected exactly one registration entry for ${target_file}"
@@ -190,10 +198,6 @@ fi
 
 mkdir -p "${WORKDIR}/uniLoader/blob"
 if [ -f "${RAW_KERNEL_IMAGE}" ]; then
-    if [ ! -r "${RAW_KERNEL_IMAGE}" ] || [ ! -s "${RAW_KERNEL_IMAGE}" ]; then
-        echo "ERROR: raw kernel image exists but is unreadable or empty: ${RAW_KERNEL_IMAGE}"
-        exit 1
-    fi
     cp "${RAW_KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
 else
     KERNEL_FILE_TYPE="$(file -b "${KERNEL_IMAGE}" 2>/dev/null || true)"
