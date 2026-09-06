@@ -199,8 +199,10 @@ if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+sam
     awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
+            print
             print reg_text
             inserted=1
+            next
         }
         { print }
         END { if (inserted==0) exit 1 }
