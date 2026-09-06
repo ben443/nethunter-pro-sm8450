@@ -1,0 +1,132 @@
+name: Build NetHunter Pro
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: "Target device"
+        required: true
+        type: choice
+        default: sm8450
+        options:
+          - pinephone
+          - pinetab
+          - pinephonepro
+          - pinetab2
+          - librem5
+          - sc7280
+          - sdm670
+          - sdm845
+          - sm6350
+          - sm8450
+          - qcom-wip
+          - amd64
+          - amd64-free
+      environment:
+        description: "Graphical environment"
+        required: true
+        type: choice
+        default: phosh
+        options:
+          - phosh
+          - plasma-mobile
+      filesystem:
+        description: "Root filesystem type"
+        required: true
+        type: choice
+        default: ext4
+        options:
+          - ext4
+          - f2fs
+      installer:
+        description: "Build installer image (-o)"
+        required: true
+        type: boolean
+        default: false
+      compress:
+        description: "Compress output artifacts (-z)"
+        required: true
+        type: boolean
+        default: true
+      image_only:
+        description: "Reuse existing rootfs/installfs when present (-i)"
+        required: true
+        type: boolean
+        default: false
+      zram:
+        description: "Enable zram tag (-Z)"
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            debos \
+            bmap-tools \
+            xz-utils \
+            android-sdk-libsparse-utils \
+            yq \
+            mkbootimg \
+            cryptsetup \
+            f2fs-tools \
+            squashfs-tools-ng
+
+      - name: Compose build arguments
+        id: args
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARGS="-t ${{ inputs.device }} -e ${{ inputs.environment }} -F ${{ inputs.filesystem }} -v"
+
+          if [[ "${{ inputs.installer }}" == "true" ]]; then
+            ARGS="${ARGS} -o"
+          fi
+          if [[ "${{ inputs.compress }}" == "true" ]]; then
+            ARGS="${ARGS} -z"
+          fi
+          if [[ "${{ inputs.image_only }}" == "true" ]]; then
+            ARGS="${ARGS} -i"
+          fi
+          if [[ "${{ inputs.zram }}" == "true" ]]; then
+            ARGS="${ARGS} -Z"
+          fi
+
+          echo "value=${ARGS}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run build
+        shell: bash
+        env:
+          BUILD_ARGS: ${{ steps.args.outputs.value }}
+        run: |
+          set -euo pipefail
+          ./build.sh ${BUILD_ARGS}
+
+      - name: List generated artifacts
+        shell: bash
+        run: ls -lh nethunterpro-* || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nethunterpro-${{ inputs.device }}-${{ inputs.environment }}-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            nethunterpro-*.img
+            nethunterpro-*.img.xz
+            nethunterpro-*.img.bmap
+            nethunterpro-*.tar.xz
+            nethunterpro-*.sha256sums
+            nethunterpro-*.sha256sums.asc
