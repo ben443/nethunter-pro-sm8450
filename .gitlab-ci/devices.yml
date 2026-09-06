@@ -69,6 +69,12 @@
   variables:
     MOBIAN_DEVICE_NAME: "sm6350"
 
+.device-sm8450:
+  extends:
+    - .device-qcom
+  variables:
+    MOBIAN_DEVICE_NAME: "sm8450"
+
 .device-sm7150:
   extends:
     - .device-qcom

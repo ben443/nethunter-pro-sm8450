@@ -54,6 +54,29 @@ Then simply browse to the `kali-nethunter-pro` folder and execute `./build.sh`.
 
 You can use `./build.sh -d` to use the docker version of `debos`.
 
+### Samsung Galaxy Tab S8 Wi-Fi (gts8wifi / SM8450)
+
+This repository now includes an **experimental** Qualcomm target for the Galaxy Tab S8 Wi-Fi:
+
+```sh
+./build.sh -t sm8450 -e phosh
+```
+
+Implemented scope:
+- Qualcomm SM8450 build target wiring in `build.sh`
+- SM8450 device config at `devices/qcom/configs/sm8450.toml`
+- CI image jobs for `sm8450` in `.gitlab-ci.yml`
+
+Reference provenance:
+- User-provided notes repository: `ben443/samsung-gts8-notes`
+- Notes commit `80f93e1627fb9a9e402be78daa93d3d0431b449c` (`PORTING_PLAN.md`)
+- Notes commit `0a929d6f9f4701542ea392204db354c253f862fd` (`Booting Fedora/README.md`)
+
+Limitations and validation status:
+- This is build-system integration only and is **not** hardware boot-validated in this repository.
+- Device-specific flashing/install procedures and partition modification steps are intentionally not automated here.
+- Manual hardware validation is still required to confirm boot, display, touch, Wi-Fi, USB, and storage behavior.
+
 ### Building QEMU image
 
 You can build a QEMU x86_64 image by adding the `-t amd64` flag to `build.sh`
