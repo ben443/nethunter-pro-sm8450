@@ -96,8 +96,8 @@ fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
-make -C "${WORKDIR}/uniLoader" ARCH=aarch64 CC=gcc gts8pwifi_defconfig
-make -C "${WORKDIR}/uniLoader" ARCH=aarch64 CC=gcc
+make -C "${WORKDIR}/uniLoader" ARCH=arm64 CC=gcc gts8pwifi_defconfig
+make -C "${WORKDIR}/uniLoader" ARCH=arm64 CC=gcc
 
 install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
 ln -sf /usr/sbin/uniLoader /usr/sbin/uniloader

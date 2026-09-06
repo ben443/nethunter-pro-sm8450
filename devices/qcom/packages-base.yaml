@@ -27,6 +27,7 @@ actions:
       - make
       - gcc
       - libc6-dev
+      - coreutils
       - bison
       - flex
       - wget
