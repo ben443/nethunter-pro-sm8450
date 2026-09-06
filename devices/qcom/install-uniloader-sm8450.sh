@@ -10,6 +10,8 @@ BOARD_FILE="board/samsung/board-gts8pwifi.c"
 BOARD_SHA256="f8a94f908f8a46a4e7cb6a39811d462afe06289993359fd7542a290de14c6de7"
 DEFCONFIG_FILE="configs/gts8pwifi_defconfig"
 DEFCONFIG_SHA256="23c622f0a93017c82de673fcfc2c01315f06ab74317a8bd56cfd04dc47fcdc66"
+REGISTRATION_FILE="REGISTRATION.txt"
+REGISTRATION_SHA256="52656f6b21b38488afcae99b1ca818b57eac4d1f974dc61c35287d659eddc0cd"
 
 WORKDIR="$(mktemp -d /tmp/uniloader-sm8450.XXXXXX)"
 cleanup() {
@@ -42,6 +44,7 @@ RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
 if [ ! -f "${RAMDISK_IMAGE}" ]; then
     RAMDISK_IMAGE="/boot/initramfs-${KERNEL_VERSION}.img"
 fi
+RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
 
 DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8wifi.dtb"
 if [ ! -f "${DTB_IMAGE}" ]; then
@@ -64,15 +67,28 @@ git -C "${WORKDIR}/uniLoader" checkout -q FETCH_HEAD
 mkdir -p "${WORKDIR}/uniLoader/board/samsung" "${WORKDIR}/uniLoader/configs"
 wget -q -O "${WORKDIR}/uniLoader/${BOARD_FILE}" "${PORT_BASE_URL}/${BOARD_FILE}"
 wget -q -O "${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" "${PORT_BASE_URL}/${DEFCONFIG_FILE}"
+wget -q -O "${WORKDIR}/${REGISTRATION_FILE}" "${PORT_BASE_URL}/${REGISTRATION_FILE}"
 
 echo "${BOARD_SHA256}  ${WORKDIR}/uniLoader/${BOARD_FILE}" | sha256sum -c -
 echo "${DEFCONFIG_SHA256}  ${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" | sha256sum -c -
+echo "${REGISTRATION_SHA256}  ${WORKDIR}/${REGISTRATION_FILE}" | sha256sum -c -
+
+MAKEFILE_REG_LINE="$(sed -n 's|.*board/Makefile:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
+MAKEFILE_REG_TEXT="$(sed -n 's|.*board/Makefile:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
+KCONFIG_REG_LINE="$(sed -n 's|.*board/Kconfig:\([0-9][0-9]*\):.*|\1|p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
+KCONFIG_REG_TEXT="$(sed -n 's|.*board/Kconfig:[0-9][0-9]*:||p' "${WORKDIR}/${REGISTRATION_FILE}" | head -1)"
+for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LINE}" "${KCONFIG_REG_TEXT}"; do
+    if [ -z "${required}" ]; then
+        echo "ERROR: invalid registration metadata for gts8pwifi board integration"
+        exit 1
+    fi
+done
 
 if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; then
-    awk '
+    awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" '
         BEGIN { inserted=0 }
-        /^[[:space:]]*config SAMSUNG_GTA4XL$/ && inserted==0 {
-            print "\tconfig SAMSUNG_GTS8PWIFI"
+        NR==line && inserted==0 {
+            print reg_text
             print "\t\tbool \"Support for Samsung Galaxy Tab S8 WiFi\""
             print "\t\tdefault n"
             print "\t\tdepends on SM8450"
@@ -90,10 +106,10 @@ if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; th
 fi
 
 if ! grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile"; then
-    awk '
+    awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" '
         BEGIN { inserted=0 }
-        /^[[:space:]]*lib-\$\(CONFIG_SAMSUNG_GTA4XL\)[[:space:]]+\+=/ && inserted==0 {
-            print "lib-$(CONFIG_SAMSUNG_GTS8PWIFI) += samsung/board-gts8pwifi.o"
+        NR==line && inserted==0 {
+            print reg_text
             inserted=1
         }
         { print }
@@ -106,21 +122,41 @@ if ! grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile"; then
 fi
 
 mkdir -p "${WORKDIR}/uniLoader/blob"
-KERNEL_FILE_TYPE="$(file -b "${KERNEL_IMAGE}" 2>/dev/null || true)"
-case "${KERNEL_FILE_TYPE}" in
-    *"gzip compressed"*)
-        gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
-        ;;
-    *"XZ compressed"*)
-        xzcat "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
-        ;;
-    *"Zstandard compressed"*)
-        zstd -dc "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
-        ;;
-    *)
-        cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
-        ;;
-esac
+if [ -f "${RAW_KERNEL_IMAGE}" ]; then
+    cp "${RAW_KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
+else
+    KERNEL_FILE_TYPE="$(file -b "${KERNEL_IMAGE}" 2>/dev/null || true)"
+    case "${KERNEL_FILE_TYPE}" in
+        *"gzip compressed"*)
+            gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *"XZ compressed"*)
+            xzcat "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *"Zstandard compressed"*)
+            zstd -dc "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *"PE32+"*"executable"*)
+            OBJCOPY_BIN="${CROSS_COMPILE_PREFIX}objcopy"
+            if ! command -v "${OBJCOPY_BIN}" >/dev/null 2>&1; then
+                echo "ERROR: missing ${OBJCOPY_BIN} to extract EFI-wrapped kernel payload"
+                exit 1
+            fi
+            "${OBJCOPY_BIN}" --dump-section .linux="${WORKDIR}/uniLoader/blob/Image" "${KERNEL_IMAGE}"
+            if [ ! -s "${WORKDIR}/uniLoader/blob/Image" ]; then
+                echo "ERROR: failed to extract EFI-wrapped kernel payload from ${KERNEL_IMAGE}"
+                exit 1
+            fi
+            ;;
+        *"Linux kernel ARM64 boot executable Image"*)
+            cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *)
+            echo "ERROR: unsupported kernel payload format for ${KERNEL_IMAGE}: ${KERNEL_FILE_TYPE}"
+            exit 1
+            ;;
+    esac
+fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
