@@ -128,8 +128,8 @@ done
 UL_ARCHIVE_TMP="${WORKDIR}/uniLoader-${UL_COMMIT}.tar.gz.tmp"
 wget -q -O "${UL_ARCHIVE_TMP}" "${UL_ARCHIVE_URL}"
 echo "${UL_ARCHIVE_SHA256}  ${UL_ARCHIVE_TMP}" | sha256sum -c -
-tar -xzf "${UL_ARCHIVE_TMP}" -C "${WORKDIR}"
-mv "${WORKDIR}/uniLoader-${UL_COMMIT}" "${WORKDIR}/uniLoader"
+mkdir -p "${WORKDIR}/uniLoader"
+tar -xzf "${UL_ARCHIVE_TMP}" -C "${WORKDIR}/uniLoader" --strip-components=1
 
 mkdir -p "${WORKDIR}/uniLoader/board/samsung" "${WORKDIR}/uniLoader/configs"
 BOARD_TMP="${WORKDIR}/board-gts8pwifi.c.tmp"
@@ -289,6 +289,11 @@ cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
 JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
+case "${JOBS}" in
+    ''|*[!0-9]*|0)
+        JOBS=1
+        ;;
+esac
 make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
 make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
 
