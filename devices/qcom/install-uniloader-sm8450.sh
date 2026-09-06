@@ -17,13 +17,16 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-KERNEL_VERSION="$(linux-version list | tail -1)"
-if [ -z "${KERNEL_VERSION}" ]; then
-    echo "ERROR: unable to detect installed kernel version"
+if [ -e /vmlinuz ]; then
+    KERNEL_IMAGE="$(readlink -f /vmlinuz)"
+else
+    KERNEL_IMAGE="$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort | tail -1)"
+fi
+if [ -z "${KERNEL_IMAGE}" ] || [ ! -f "${KERNEL_IMAGE}" ]; then
+    echo "ERROR: unable to detect installed kernel image"
     exit 1
 fi
-
-KERNEL_IMAGE="/boot/vmlinuz-${KERNEL_VERSION}"
+KERNEL_VERSION="${KERNEL_IMAGE##*/vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
 DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-galaxy-tab-s8-5g.dtb"
 
@@ -57,12 +60,16 @@ grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile" || \
     echo 'lib-$(CONFIG_SAMSUNG_GTS8PWIFI) += samsung/board-gts8pwifi.o' >> "${WORKDIR}/uniLoader/board/Makefile"
 
 mkdir -p "${WORKDIR}/uniLoader/blob"
-gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+if gzip -t "${KERNEL_IMAGE}" >/dev/null 2>&1; then
+    gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+else
+    cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
+fi
 cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
 cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
 
 make -C "${WORKDIR}/uniLoader" ARCH=aarch64 gts8pwifi_defconfig
 make -C "${WORKDIR}/uniLoader" ARCH=aarch64
 
-install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/local/sbin/uniLoader
-ln -sf /usr/local/sbin/uniLoader /usr/local/sbin/uniloader
+install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
+ln -sf /usr/sbin/uniLoader /usr/sbin/uniloader
