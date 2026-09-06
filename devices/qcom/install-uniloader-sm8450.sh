@@ -42,7 +42,7 @@ if [ -e /vmlinuz ]; then
     esac
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
-    KERNEL_IMAGE="$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort | tail -1)"
+    KERNEL_IMAGE="$(find /boot -maxdepth 1 -type f -name 'vmlinuz-*' | sort -V | tail -1)"
 fi
 if [ -z "${KERNEL_IMAGE}" ] || [ ! -f "${KERNEL_IMAGE}" ]; then
     echo "ERROR: unable to detect installed kernel image"
@@ -53,6 +53,12 @@ KERNEL_VERSION="${KERNEL_BASENAME#vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
 if [ ! -f "${RAMDISK_IMAGE}" ]; then
     RAMDISK_IMAGE="/boot/initramfs-${KERNEL_VERSION}.img"
+fi
+if [ ! -f "${RAMDISK_IMAGE}" ]; then
+    RAMDISK_IMAGE="/boot/initramfs"
+fi
+if [ ! -f "${RAMDISK_IMAGE}" ]; then
+    RAMDISK_IMAGE="/initramfs"
 fi
 RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
 
@@ -94,7 +100,7 @@ for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LIN
     fi
 done
 
-if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; then
+if ! grep -Fxq "${KCONFIG_REG_TEXT}" "${WORKDIR}/uniLoader/board/Kconfig"; then
     awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
@@ -115,7 +121,7 @@ if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; th
     mv "${WORKDIR}/uniLoader/board/Kconfig.tmp" "${WORKDIR}/uniLoader/board/Kconfig"
 fi
 
-if ! grep -q "board-gts8pwifi.o" "${WORKDIR}/uniLoader/board/Makefile"; then
+if ! grep -Fxq "${MAKEFILE_REG_TEXT}" "${WORKDIR}/uniLoader/board/Makefile"; then
     awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" '
         BEGIN { inserted=0 }
         NR==line && inserted==0 {
