@@ -29,6 +29,7 @@ actions:
       - libc6-dev
       - bison
       - flex
+      - wget
 {{- else }}
       - {{ $device }}-support
 {{- end }}
@@ -53,6 +54,11 @@ actions:
 {{- end }}
 
 {{- if eq $device "sm8450" }}
+  - action: run
+    chroot: true
+    description: Install sm8450 support package when available
+    command: apt-cache show sm8450-support >/dev/null 2>&1 && apt-get install -y sm8450-support || true
+
   - action: run
     chroot: true
     description: Build and install uniLoader from source
