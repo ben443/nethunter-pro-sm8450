@@ -34,17 +34,8 @@ fi
 KERNEL_VERSION="${KERNEL_IMAGE##*/vmlinuz-}"
 RAMDISK_IMAGE="/boot/initrd.img-${KERNEL_VERSION}"
 
-DTB_IMAGE=""
-for candidate in \
-    "/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8wifi.dtb" \
-    "/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-galaxy-tab-s8-5g.dtb"
-do
-    if [ -f "${candidate}" ]; then
-        DTB_IMAGE="${candidate}"
-        break
-    fi
-done
-if [ -z "${DTB_IMAGE}" ]; then
+DTB_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/sm8450-samsung-gts8wifi.dtb"
+if [ ! -f "${DTB_IMAGE}" ]; then
     echo "ERROR: unable to locate SM8450 DTB for uniLoader build"
     exit 1
 fi
@@ -71,7 +62,7 @@ echo "${DEFCONFIG_SHA256}  ${WORKDIR}/uniLoader/${DEFCONFIG_FILE}" | sha256sum -
 if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; then
     awk '
         BEGIN { inserted=0 }
-        /^endmenu$/ && inserted==0 {
+        /^[[:space:]]*config SAMSUNG_GTA4XL$/ && inserted==0 {
             print "\tconfig SAMSUNG_GTS8PWIFI"
             print "\t\tbool \"Support for Samsung Galaxy Tab S8 WiFi\""
             print "\t\tdefault n"
@@ -81,7 +72,11 @@ if ! grep -q "config SAMSUNG_GTS8PWIFI" "${WORKDIR}/uniLoader/board/Kconfig"; th
             inserted=1
         }
         { print }
-    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp"
+        END { if (inserted==0) exit 1 }
+    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp" || {
+        echo "ERROR: failed to insert SAMSUNG_GTS8PWIFI into board/Kconfig"
+        exit 1
+    }
     mv "${WORKDIR}/uniLoader/board/Kconfig.tmp" "${WORKDIR}/uniLoader/board/Kconfig"
 fi
 
