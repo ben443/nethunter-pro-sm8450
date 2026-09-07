@@ -1,0 +1,301 @@
+#!/bin/sh
+
+set -eu
+
+UL_COMMIT="43770a04327532407194ddd3f9f35770daa01c70"
+UL_ARCHIVE_URL="https://github.com/ivoszbg/uniLoader/archive/${UL_COMMIT}.tar.gz"
+UL_ARCHIVE_SHA256="b4a01cc3f6b4ea39a5becdb9b37549bf75438504807676d2f0a87bf9ef0cbb93"
+PORT_REPO_REF="c663da1b06c8e660a1dee107cfa26511080a8819"
+PORT_BASE_URL="https://raw.githubusercontent.com/aaronsb/sm-x800-linux/${PORT_REPO_REF}/pmaports-overlay/uniloader-port"
+BOARD_FILE="board/samsung/board-gts8pwifi.c"
+BOARD_SHA256="f8a94f908f8a46a4e7cb6a39811d462afe06289993359fd7542a290de14c6de7"
+DEFCONFIG_FILE="configs/gts8pwifi_defconfig"
+DEFCONFIG_SHA256="23c622f0a93017c82de673fcfc2c01315f06ab74317a8bd56cfd04dc47fcdc66"
+REGISTRATION_FILE="REGISTRATION.txt"
+REGISTRATION_SHA256="52656f6b21b38488afcae99b1ca818b57eac4d1f974dc61c35287d659eddc0cd"
+KCONFIG_ANCHOR_TEXT="	config SAMSUNG_GTA4XL"
+MAKEFILE_ANCHOR_TEXT='lib-$(CONFIG_SAMSUNG_GTA4XL) += samsung/board-gta4xl.o'
+
+WORKDIR="$(mktemp -d /tmp/uniloader-sm8450.XXXXXX)"
+cleanup() {
+    rm -rf "${WORKDIR}"
+}
+trap cleanup EXIT INT TERM
+
+BUILD_ARCH="$(dpkg --print-architecture)"
+if [ "${BUILD_ARCH}" = "arm64" ]; then
+    CROSS_COMPILE_PREFIX=""
+else
+    CROSS_COMPILE_PREFIX="aarch64-linux-gnu-"
+    if ! command -v "${CROSS_COMPILE_PREFIX}gcc" >/dev/null 2>&1; then
+        echo "ERROR: missing cross-compiler ${CROSS_COMPILE_PREFIX}gcc for ${BUILD_ARCH} build"
+        exit 1
+    fi
+fi
+
+KERNEL_IMAGE=""
+KERNEL_VERSION=""
+RAMDISK_IMAGE=""
+DTB_IMAGE=""
+
+resolve_vmlinuz_path() {
+    path="/vmlinuz"
+    if command -v readlink >/dev/null 2>&1; then
+        resolved="$(readlink -f "${path}" 2>/dev/null || true)"
+        if [ -n "${resolved}" ]; then
+            printf '%s\n' "${resolved}"
+            return
+        fi
+        if [ -L "${path}" ]; then
+            link_target="$(readlink "${path}" 2>/dev/null || true)"
+            if [ -n "${link_target}" ]; then
+                case "${link_target}" in
+                    /*) printf '%s\n' "${link_target}" ;;
+                    *) printf '%s\n' "$(dirname "${path}")/${link_target}" ;;
+                esac
+                return
+            fi
+        fi
+    fi
+    printf '%s\n' "${path}"
+}
+
+consider_candidate() {
+    candidate="$1"
+    base="$(basename "${candidate}")"
+    case "${base}" in
+        vmlinuz-*)
+            version="${base#vmlinuz-}"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    ramdisk_candidate="/boot/initrd.img-${version}"
+    if [ ! -f "${ramdisk_candidate}" ]; then
+        ramdisk_candidate="/boot/initramfs-${version}.img"
+    fi
+    dtb_candidate="/usr/lib/linux-image-${version}/qcom/sm8450-samsung-gts8pwifi.dtb"
+
+    if [ -f "${candidate}" ] && [ -f "${ramdisk_candidate}" ] && [ -f "${dtb_candidate}" ]; then
+        KERNEL_IMAGE="${candidate}"
+        KERNEL_VERSION="${version}"
+        RAMDISK_IMAGE="${ramdisk_candidate}"
+        DTB_IMAGE="${dtb_candidate}"
+        return 0
+    fi
+    return 1
+}
+
+if [ -e /vmlinuz ]; then
+    consider_candidate "$(resolve_vmlinuz_path)" || true
+fi
+if [ -z "${KERNEL_IMAGE}" ]; then
+    for candidate in /boot/vmlinuz-*; do
+        if [ -f "${candidate}" ]; then
+            printf '%s\n' "${candidate}"
+        fi
+    done | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    while IFS= read -r candidate; do
+        if consider_candidate "${candidate}"; then
+            break
+        fi
+    done < "${WORKDIR}/kernel-candidates.txt"
+fi
+
+if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ]; then
+    echo "ERROR: unable to locate matching kernel, ramdisk, and DTB artifacts for sm8450"
+    exit 1
+fi
+RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
+if [ -e "${RAW_KERNEL_IMAGE}" ] && [ ! -f "${RAW_KERNEL_IMAGE}" ]; then
+    echo "ERROR: raw kernel image path is not a regular file: ${RAW_KERNEL_IMAGE}"
+    exit 1
+fi
+if [ -e "${RAW_KERNEL_IMAGE}" ] && { [ ! -r "${RAW_KERNEL_IMAGE}" ] || [ ! -s "${RAW_KERNEL_IMAGE}" ]; }; then
+    echo "ERROR: raw kernel image exists but is unreadable or empty: ${RAW_KERNEL_IMAGE}"
+    exit 1
+fi
+
+for file in "${KERNEL_IMAGE}" "${RAMDISK_IMAGE}" "${DTB_IMAGE}"; do
+    if [ ! -f "${file}" ]; then
+        echo "ERROR: missing required input for uniLoader build: ${file}"
+        exit 1
+    fi
+done
+
+UL_ARCHIVE_TMP="${WORKDIR}/uniLoader-${UL_COMMIT}.tar.gz.tmp"
+wget -q -O "${UL_ARCHIVE_TMP}" "${UL_ARCHIVE_URL}"
+echo "${UL_ARCHIVE_SHA256}  ${UL_ARCHIVE_TMP}" | sha256sum -c -
+mkdir -p "${WORKDIR}/uniLoader"
+tar -xzf "${UL_ARCHIVE_TMP}" -C "${WORKDIR}/uniLoader" --strip-components=1
+
+mkdir -p "${WORKDIR}/uniLoader/board/samsung" "${WORKDIR}/uniLoader/configs"
+BOARD_TMP="${WORKDIR}/board-gts8pwifi.c.tmp"
+DEFCONFIG_TMP="${WORKDIR}/gts8pwifi_defconfig.tmp"
+REGISTRATION_TMP="${WORKDIR}/${REGISTRATION_FILE}.tmp"
+wget -q -O "${BOARD_TMP}" "${PORT_BASE_URL}/${BOARD_FILE}"
+wget -q -O "${DEFCONFIG_TMP}" "${PORT_BASE_URL}/${DEFCONFIG_FILE}"
+wget -q -O "${REGISTRATION_TMP}" "${PORT_BASE_URL}/${REGISTRATION_FILE}"
+
+echo "${BOARD_SHA256}  ${BOARD_TMP}" | sha256sum -c -
+echo "${DEFCONFIG_SHA256}  ${DEFCONFIG_TMP}" | sha256sum -c -
+echo "${REGISTRATION_SHA256}  ${REGISTRATION_TMP}" | sha256sum -c -
+mv "${BOARD_TMP}" "${WORKDIR}/uniLoader/${BOARD_FILE}"
+mv "${DEFCONFIG_TMP}" "${WORKDIR}/uniLoader/${DEFCONFIG_FILE}"
+mv "${REGISTRATION_TMP}" "${WORKDIR}/${REGISTRATION_FILE}"
+
+PARSED_LINE=""
+PARSED_TEXT=""
+parse_registration_entry() {
+    target_file="$1"
+    prefix="reference/uniLoader/${target_file}:"
+    entry="$(awk -v prefix="${prefix}" 'index($0, prefix) == 1 { print }' "${WORKDIR}/${REGISTRATION_FILE}")"
+    count="$(printf '%s\n' "${entry}" | sed '/^$/d' | awk 'END { print NR }')"
+    if [ "${count}" -ne 1 ]; then
+        echo "ERROR: expected exactly one registration entry for ${target_file}"
+        exit 1
+    fi
+    line_and_text="${entry#${prefix}}"
+    PARSED_LINE="${line_and_text%%:*}"
+    PARSED_TEXT="${line_and_text#${PARSED_LINE}:}"
+    case "${PARSED_LINE}" in
+        ''|*[!0-9]*)
+            echo "ERROR: invalid registration line number for ${target_file}: ${PARSED_LINE}"
+            exit 1
+            ;;
+    esac
+}
+
+parse_registration_entry "board/Makefile"
+MAKEFILE_REG_LINE="${PARSED_LINE}"
+MAKEFILE_REG_TEXT="${PARSED_TEXT}"
+parse_registration_entry "board/Kconfig"
+KCONFIG_REG_LINE="${PARSED_LINE}"
+KCONFIG_REG_TEXT="${PARSED_TEXT}"
+for required in "${MAKEFILE_REG_LINE}" "${MAKEFILE_REG_TEXT}" "${KCONFIG_REG_LINE}" "${KCONFIG_REG_TEXT}"; do
+    if [ -z "${required}" ]; then
+        echo "ERROR: invalid registration metadata for gts8pwifi board integration"
+        exit 1
+    fi
+done
+
+if ! grep -Eq '^[[:space:]]*config[[:space:]]+SAMSUNG_GTS8PWIFI$' "${WORKDIR}/uniLoader/board/Kconfig"; then
+    if awk -v line="${KCONFIG_REG_LINE}" -v reg_text="${KCONFIG_REG_TEXT}" -v anchor_text="${KCONFIG_ANCHOR_TEXT}" '
+        BEGIN { inserted=0; drift=0 }
+        NR==line && inserted==0 {
+            if ($0 != anchor_text) {
+                drift=1
+                exit 2
+            }
+            print
+            gsub(/^[ \t]+/, "", reg_text)
+            print reg_text
+            print "\tbool \"Support for Samsung Galaxy Tab S8 WiFi\""
+            print "\tdefault n"
+            print "\tdepends on SM8450"
+            print "\thelp"
+            print "\t  Say Y if you want to include support for Samsung Galaxy Tab S8 WiFi"
+            inserted=1
+            next
+        }
+        { print }
+        END { if (inserted==0 && drift==0) exit 1 }
+    ' "${WORKDIR}/uniLoader/board/Kconfig" > "${WORKDIR}/uniLoader/board/Kconfig.tmp"; then
+        :
+    else
+        awk_rc=$?
+        if [ "${awk_rc}" -eq 2 ]; then
+            echo "ERROR: board/Kconfig anchor content drift detected at line ${KCONFIG_REG_LINE}"
+        else
+            echo "ERROR: failed to locate board/Kconfig insertion point at line ${KCONFIG_REG_LINE}"
+        fi
+        exit 1
+    fi
+    mv "${WORKDIR}/uniLoader/board/Kconfig.tmp" "${WORKDIR}/uniLoader/board/Kconfig"
+fi
+
+if ! grep -Eq '^lib-\$\(CONFIG_SAMSUNG_GTS8PWIFI\)[[:space:]]+\+=[[:space:]]+samsung/board-gts8pwifi\.o$' "${WORKDIR}/uniLoader/board/Makefile"; then
+    if awk -v line="${MAKEFILE_REG_LINE}" -v reg_text="${MAKEFILE_REG_TEXT}" -v anchor_text="${MAKEFILE_ANCHOR_TEXT}" '
+        BEGIN { inserted=0; drift=0 }
+        NR==line && inserted==0 {
+            if ($0 != anchor_text) {
+                drift=1
+                exit 2
+            }
+            print
+            print reg_text
+            inserted=1
+            next
+        }
+        { print }
+        END { if (inserted==0 && drift==0) exit 1 }
+    ' "${WORKDIR}/uniLoader/board/Makefile" > "${WORKDIR}/uniLoader/board/Makefile.tmp"; then
+        :
+    else
+        awk_rc=$?
+        if [ "${awk_rc}" -eq 2 ]; then
+            echo "ERROR: board/Makefile anchor content drift detected at line ${MAKEFILE_REG_LINE}"
+        else
+            echo "ERROR: failed to locate board/Makefile insertion point at line ${MAKEFILE_REG_LINE}"
+        fi
+        exit 1
+    fi
+    mv "${WORKDIR}/uniLoader/board/Makefile.tmp" "${WORKDIR}/uniLoader/board/Makefile"
+fi
+
+mkdir -p "${WORKDIR}/uniLoader/blob"
+if [ -f "${RAW_KERNEL_IMAGE}" ]; then
+    cp "${RAW_KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
+else
+    KERNEL_FILE_TYPE="$(file -b "${KERNEL_IMAGE}" 2>/dev/null || true)"
+    case "${KERNEL_FILE_TYPE}" in
+        *"gzip compressed"*)
+            gunzip -c "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *"XZ compressed"*)
+            xzcat "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *"Zstandard compressed"*)
+            zstd -dc "${KERNEL_IMAGE}" > "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *"PE32+"*"executable"*)
+            OBJCOPY_BIN="${CROSS_COMPILE_PREFIX}objcopy"
+            if ! command -v "${OBJCOPY_BIN}" >/dev/null 2>&1; then
+                echo "ERROR: missing ${OBJCOPY_BIN} to extract EFI-wrapped kernel payload"
+                exit 1
+            fi
+            "${OBJCOPY_BIN}" --dump-section .linux="${WORKDIR}/uniLoader/blob/Image" "${KERNEL_IMAGE}"
+            if [ ! -s "${WORKDIR}/uniLoader/blob/Image" ]; then
+                echo "ERROR: failed to extract EFI-wrapped kernel payload from ${KERNEL_IMAGE}"
+                exit 1
+            fi
+            ;;
+        *"Linux kernel ARM64 boot executable Image"*)
+            cp "${KERNEL_IMAGE}" "${WORKDIR}/uniLoader/blob/Image"
+            ;;
+        *)
+            echo "ERROR: unsupported kernel payload format for ${KERNEL_IMAGE}: ${KERNEL_FILE_TYPE}"
+            exit 1
+            ;;
+    esac
+fi
+if [ ! -s "${WORKDIR}/uniLoader/blob/Image" ]; then
+    echo "ERROR: generated kernel payload is empty or unreadable"
+    exit 1
+fi
+cp "${DTB_IMAGE}" "${WORKDIR}/uniLoader/blob/dtb"
+cp "${RAMDISK_IMAGE}" "${WORKDIR}/uniLoader/blob/ramdisk"
+
+JOBS="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
+case "${JOBS}" in
+    ''|*[!0-9]*|0)
+        JOBS=1
+        ;;
+esac
+make -C "${WORKDIR}/uniLoader" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}" gts8pwifi_defconfig
+make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COMPILE_PREFIX}"
+
+install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
+ln -sf /usr/sbin/uniLoader /usr/sbin/uniloader

@@ -21,9 +21,23 @@ actions:
       - gstreamer1.0-plugins-base-apps
       - yq
 {{- if ne $device "wip" }}
-      - {{ $device }}-support
 {{- if eq $device "sm8450" }}
-      - uniloader
+      - qcom-support-common
+      - make
+      - gcc
+      - binutils
+      - gcc-aarch64-linux-gnu
+      - binutils-aarch64-linux-gnu
+      - libc6-dev
+      - file
+      - bison
+      - flex
+      - gzip
+      - wget
+      - xz-utils
+      - zstd
+{{- else }}
+      - {{ $device }}-support
 {{- end }}
 {{- else }}
       - qcom-support-common
@@ -43,6 +57,13 @@ actions:
     description: Add droid-juicer configuration to image
     source: droid-juicer
     destination: /usr/share/droid-juicer/configs
+{{- end }}
+
+{{- if eq $device "sm8450" }}
+  - action: run
+    chroot: true
+    description: Build and install uniLoader from source
+    script: install-uniloader-sm8450.sh
 {{- end }}
 
   - action: run
