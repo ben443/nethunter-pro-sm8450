@@ -86,7 +86,7 @@ Fedora boot prerequisites and constraints (from `ben443/samsung-gts8-notes`):
 - Use TWRP recovery as a recovery/safety environment.
 - Use Project Mu as the secondary bootloader (`boot` replacement) before testing Fedora boot.
 - Expect manual partitioning/flashing steps; this repository does not automate repartitioning or per-device flashing.
-- Fedora notes currently rely on ext4 rootfs preparation and a matching DTB (`sm8450-galaxy-tab-s8-5g.dtb`) in the Fedora boot path.
+- Fedora notes currently rely on ext4 rootfs preparation and a matching DTB (`sm8450-galaxy-tab-s8-5g.dtb`) in the Fedora boot path; one referenced source is Robotix22 Project Mu: <https://github.com/Robotix22/MU-Qcom/raw/8e7ebd3973e54ab22d830f1203fed4877176e99f/Platforms/SM8450Pkg/FdtBlob/sm8450-galaxy-tab-s8-5g.dtb>.
 
 Caveats:
 - Device support here is build-system integration for qcom/SM8450 artifacts, not a full flashing or hardware enablement workflow.
