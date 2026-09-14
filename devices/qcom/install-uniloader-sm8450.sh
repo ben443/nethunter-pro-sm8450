@@ -76,7 +76,21 @@ consider_candidate() {
     if [ ! -f "${ramdisk_candidate}" ]; then
         ramdisk_candidate="/boot/initramfs-${version}.img"
     fi
-    dtb_candidate="/usr/lib/linux-image-${version}/qcom/sm8450-samsung-gts8pwifi.dtb"
+    dtb_candidate=""
+    for dtb_name in \
+        "sm8450-galaxy-tab-s8-5g.dtb" \
+        "sm8450-samsung-gts8wifi.dtb" \
+        "sm8450-samsung-gts8pwifi.dtb"
+    do
+        dtb_path="/usr/lib/linux-image-${version}/qcom/${dtb_name}"
+        if [ -f "${dtb_path}" ]; then
+            dtb_candidate="${dtb_path}"
+            break
+        fi
+    done
+    if [ -z "${dtb_candidate}" ]; then
+        return 1
+    fi
 
     if [ -f "${candidate}" ] && [ -f "${ramdisk_candidate}" ] && [ -f "${dtb_candidate}" ]; then
         KERNEL_IMAGE="${candidate}"

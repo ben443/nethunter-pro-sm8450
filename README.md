@@ -37,12 +37,13 @@ sudo apt install android-sdk-libsparse-utils yq mkbootimg
 - `sdm670`
 - `sdm845`
 - `sm6350`
-- `sm8450` (Samsung Galaxy Tab S8 WiFi, `gts8wifi`)
+- `sm8450`
+- `gts8wifi` (Samsung Galaxy Tab S8 Wi-Fi / SM8450)
 
-Example build command for Galaxy Tab S8 WiFi:
+Example build command for Galaxy Tab S8 Wi-Fi:
 
 ```
-./build.sh -t sm8450
+./build.sh -t gts8wifi
 ```
 
 For `sm8450` targets, the build now compiles and installs `uniLoader` from source during image creation.
@@ -72,26 +73,84 @@ You can use `./build.sh -d` to use the docker version of `debos`.
 
 ### Samsung Galaxy Tab S8 Wi-Fi (gts8wifi / SM8450)
 
-This repository now includes an **experimental** Qualcomm target for the Galaxy Tab S8 Wi-Fi:
+`gts8wifi` is a Qualcomm SM8450 target and follows the repository's qcom build flow.
+
+Build examples:
 
 ```sh
-./build.sh -t sm8450 -e phosh
+./build.sh -t gts8wifi
+./build.sh -t gts8wifi -e phosh
 ```
 
-Implemented scope:
-- Qualcomm SM8450 build target wiring in `build.sh`
-- SM8450 device config at `devices/qcom/configs/sm8450.toml`
-- CI image jobs for `sm8450` in `.gitlab-ci.yml`
+Fedora boot prerequisites and constraints (from `ben443/samsung-gts8-notes`):
+- Use TWRP recovery as a recovery/safety environment.
+- Use Project Mu as the secondary bootloader (`boot` replacement) before testing Fedora boot.
+- Expect manual partitioning/flashing steps; this repository does not automate repartitioning or per-device flashing.
+- Fedora notes currently rely on ext4 rootfs preparation and a matching DTB (`sm8450-galaxy-tab-s8-5g.dtb`) in the Fedora boot path; one referenced source is Robotix22 Project Mu: <https://github.com/Robotix22/MU-Qcom/raw/8e7ebd3973e54ab22d830f1203fed4877176e99f/Platforms/SM8450Pkg/FdtBlob/sm8450-galaxy-tab-s8-5g.dtb>.
+- The `gts8wifi` qcom config in this repo now defaults to Samsung-style bootimg v4 offsets (`kernel=0x8000`, `ramdisk=0x02000000`, `tags=0x01e00000`, `dtb=0x01f00000`) and appends `clk_ignore_unused pd_ignore_unused` for display/power-domain stability during bring-up.
 
-Reference provenance:
-- User-provided notes repository: `ben443/samsung-gts8-notes`
-- Notes commit `80f93e1627fb9a9e402be78daa93d3d0431b449c` (`PORTING_PLAN.md`)
-- Notes commit `0a929d6f9f4701542ea392204db354c253f862fd` (`Booting Fedora/README.md`)
+Flashing workflow (TWRP, experimental and destructive):
 
-Limitations and validation status:
-- This is build-system integration only and is **not** hardware boot-validated in this repository.
-- Device-specific flashing/install procedures and partition modification steps are intentionally not automated here.
-- Manual hardware validation is still required to confirm boot, display, touch, Wi-Fi, USB, and storage behavior.
+1. Build artifacts in this repo:
+
+```sh
+./build.sh -t gts8wifi -e phosh
+```
+
+2. Prepare host-side files for recovery flashing:
+   - TWRP-compatible `parted` binary
+   - `boot.img` for `boot` partition (Project Mu / uniLoader path)
+   - Fedora `p1` image (ESP, fat32)
+   - Fedora `p2` image (boot/ext4)
+   - Fedora rootfs ext4 image (for `fedora_p3`)
+   - Script from this repo: `/home/runner/work/nethunter-pro-sm8450/nethunter-pro-sm8450/devices/qcom/flash-gts8wifi-twrp.sh`
+
+3. Boot tablet to TWRP, connect ADB, and push files:
+
+```sh
+adb push /home/runner/work/nethunter-pro-sm8450/nethunter-pro-sm8450/devices/qcom/flash-gts8wifi-twrp.sh /external_sd/
+adb push <parted-binary> /external_sd/parted
+adb push <boot.img> /external_sd/boot.img
+adb push <fedora-p1.img> /external_sd/fedora-p1.img
+adb push <fedora-p2.img> /external_sd/fedora-p2.img
+adb push <fedora-rootfs.ext4> /external_sd/fedora-rootfs.ext4
+adb shell chmod +x /external_sd/parted /external_sd/flash-gts8wifi-twrp.sh
+```
+
+4. Partition step (replaces existing `userdata`):
+
+```sh
+adb shell /external_sd/flash-gts8wifi-twrp.sh --partition-only --confirm-repartition yes
+```
+
+5. Reboot back to recovery, then flash partitions:
+
+```sh
+adb reboot recovery
+adb shell /external_sd/flash-gts8wifi-twrp.sh \
+  --flash-only \
+  --boot-img /external_sd/boot.img \
+  --fedora-p1-img /external_sd/fedora-p1.img \
+  --fedora-p2-img /external_sd/fedora-p2.img \
+  --rootfs-img /external_sd/fedora-rootfs.ext4
+```
+
+6. Reboot system from TWRP.
+
+Notes for the helper script:
+- It auto-detects `boot` and `userdata` block devices where possible and defaults to `/dev/block/sda` layout.
+- It creates `fedora_p1` (14.0-16.5 GB), `fedora_p2` (16.5-18.0 GB), `fedora_p3` (18.0-40.0 GB), and a smaller `userdata` (40.0-127.0 GB).
+- You can override detection with `--disk`, `--boot-part`, or env vars (`DEVICE_DISK`, `BOOT_PART`, `FEDORA_P1_PART`, `FEDORA_P2_PART`, `FEDORA_ROOT_PART`).
+
+Caveats:
+- Device support here is build-system integration for qcom/SM8450 artifacts, not a full flashing or hardware enablement workflow.
+- If your boot chain requirements differ from current qcom defaults, adjust local boot components accordingly.
+
+Related upstream references:
+- [`aaronsb/sm-x800-linux`](https://github.com/aaronsb/sm-x800-linux): useful for Samsung SM8450 boot-chain context (notably uniLoader usage), but this is focused on Tab S8+ (`gts8pwifi`) so partitioning and device-specific hardware notes are not directly interchangeable with `gts8wifi`.
+- [`sm8450-mainline`](https://github.com/sm8450-mainline): useful as a broader SM8450 mainline ecosystem reference (DT/device-tree sources, U-Boot/UEFI work, and firmware packaging), and should be treated as upstream context rather than a drop-in configuration for this repository.
+- [`postmarketOS wiki-doc (SM8450/SM8475)`](https://github.com/Taaloy/postmarketos-wiki-doc/blob/f651c36cdcaa8aae04f206071f2d4fc6b445b2e7/postmarketos-wiki/html/en/Qualcomm_Snapdragon_8_Gen_1_8%2B_Gen_1_(SM8450_SM8475).html#L5): useful for chipset-level background and device ecosystem context, but not a per-device flashing or boot recipe for this repository.
+- [`kreatoo/pmaports` linux-postmarketos-qcom-sm8450](https://github.com/kreatoo/pmaports/tree/f3fe9b23f63d6a06717a5de0bb6932f654d37bac/device/testing/linux-postmarketos-qcom-sm8450) and [`nacht20-de/gts9wifi-fedora`](https://github.com/nacht20-de/gts9wifi-fedora.git): useful for additional SM8450 bring-up patterns, but device trees, partitioning, and firmware assumptions vary by hardware and must be adapted per device.
 
 ### Building QEMU image
 

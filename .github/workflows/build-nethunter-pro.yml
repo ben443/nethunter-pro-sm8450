@@ -19,6 +19,7 @@ on:
           - sdm845
           - sm6350
           - sm8450
+          - gts8wifi
           - qcom-wip
           - amd64
           - amd64-free
