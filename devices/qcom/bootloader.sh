@@ -2,6 +2,12 @@
 
 SCRIPT="$0"
 DEVICE="$1"
+WORKDIR="$(mktemp -d /tmp/qcom-bootloader.XXXXXX)"
+
+cleanup() {
+    rm -rf "${WORKDIR}"
+}
+trap cleanup EXIT INT TERM
 
 CONFIG="$(dirname ${SCRIPT})/configs/${DEVICE}.toml"
 if ! [ -f "${CONFIG}" ]; then
@@ -97,11 +103,13 @@ if [ -e /vmlinuz ]; then
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
     for candidate in /boot/vmlinuz-*; do
-        [ -f "${candidate}" ] || continue
+        [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
+    done | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    while IFS= read -r candidate; do
         if consider_kernel_candidate "${candidate}"; then
             break
         fi
-    done
+    done < "${WORKDIR}/kernel-candidates.txt"
 fi
 if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ] || [ -z "${RAMDISK_IMAGE}" ]; then
     echo "WARN: unable to locate matching kernel and ramdisk artifacts for ${DEVICE}; skipping boot image generation"
