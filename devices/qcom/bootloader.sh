@@ -72,25 +72,23 @@ resolve_vmlinuz_path() {
     printf '%s\n' "${path}"
 }
 
-consider_kernel_candidate() {
-    candidate="$1"
-    base="$(basename "${candidate}")"
-    case "${base}" in
-        vmlinuz-*)
-            version="${base#vmlinuz-}"
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-
+consider_kernel_version() {
+    version="$1"
+    kernel_candidate="/boot/vmlinuz-${version}"
+    raw_kernel_candidate="/usr/lib/linux-image-${version}/Image"
     ramdisk_candidate="/boot/initrd.img-${version}"
     if [ ! -f "${ramdisk_candidate}" ]; then
         ramdisk_candidate="/boot/initramfs-${version}.img"
     fi
 
-    if [ -f "${candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
-        KERNEL_IMAGE="${candidate}"
+    if [ -f "${raw_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
+        KERNEL_IMAGE="${raw_kernel_candidate}"
+        KERNEL_VERSION="${version}"
+        RAMDISK_IMAGE="${ramdisk_candidate}"
+        return 0
+    fi
+    if [ -f "${kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
+        KERNEL_IMAGE="${kernel_candidate}"
         KERNEL_VERSION="${version}"
         RAMDISK_IMAGE="${ramdisk_candidate}"
         return 0
@@ -98,13 +96,44 @@ consider_kernel_candidate() {
     return 1
 }
 
+consider_kernel_candidate() {
+    candidate="$1"
+    base="$(basename "${candidate}")"
+    case "${base}" in
+        vmlinuz-*)
+            version="${base#vmlinuz-}"
+            ;;
+        Image)
+            parent="$(basename "$(dirname "${candidate}")")"
+            case "${parent}" in
+                linux-image-*)
+                    version="${parent#linux-image-}"
+                    ;;
+                *)
+                    return 1
+                    ;;
+            esac
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    consider_kernel_version "${version}"
+}
+
 if [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
-    for candidate in /boot/vmlinuz-*; do
-        [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
-    done | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    {
+        for candidate in /boot/vmlinuz-*; do
+            [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
+        done
+        for candidate in /usr/lib/linux-image-*/Image; do
+            [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
+        done
+    } | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
     while IFS= read -r candidate; do
         if consider_kernel_candidate "${candidate}"; then
             break
