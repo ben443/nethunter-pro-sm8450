@@ -1,11 +1,13 @@
 chipset = "sm8450"
 
 [bootimg]
+version = 4
 base = 0x0
 kernel = 0x8000
-ramdisk = 0x1000000
+ramdisk = 0x02000000
+dtb = 0x01f00000
 second = 0
-tags = 0x100
+tags = 0x01e00000
 pagesize = 4096
 
 [[device]]
@@ -13,6 +15,4 @@ vendor = "samsung"
 model = "gts8wifi"
 dtb_vendor = "galaxy"
 dtb_model = "tab-s8-5g"
-
-# TODO: If your boot chain requires a boot header v2 DTB offset, add:
-# bootimg = { version = 2, dtb = 0x..., base = 0x0, kernel = 0x8000, ramdisk = 0x1000000, second = 0, tags = 0x100, pagesize = 4096 }
+append = "clk_ignore_unused pd_ignore_unused"

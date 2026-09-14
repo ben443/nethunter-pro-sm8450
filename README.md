@@ -87,6 +87,7 @@ Fedora boot prerequisites and constraints (from `ben443/samsung-gts8-notes`):
 - Use Project Mu as the secondary bootloader (`boot` replacement) before testing Fedora boot.
 - Expect manual partitioning/flashing steps; this repository does not automate repartitioning or per-device flashing.
 - Fedora notes currently rely on ext4 rootfs preparation and a matching DTB (`sm8450-galaxy-tab-s8-5g.dtb`) in the Fedora boot path; one referenced source is Robotix22 Project Mu: <https://github.com/Robotix22/MU-Qcom/raw/8e7ebd3973e54ab22d830f1203fed4877176e99f/Platforms/SM8450Pkg/FdtBlob/sm8450-galaxy-tab-s8-5g.dtb>.
+- The `gts8wifi` qcom config in this repo now defaults to Samsung-style bootimg v4 offsets (`kernel=0x8000`, `ramdisk=0x02000000`, `tags=0x01e00000`, `dtb=0x01f00000`) and appends `clk_ignore_unused pd_ignore_unused` for display/power-domain stability during bring-up.
 
 Caveats:
 - Device support here is build-system integration for qcom/SM8450 artifacts, not a full flashing or hardware enablement workflow.
@@ -96,6 +97,7 @@ Related upstream references:
 - [`aaronsb/sm-x800-linux`](https://github.com/aaronsb/sm-x800-linux): useful for Samsung SM8450 boot-chain context (notably uniLoader usage), but this is focused on Tab S8+ (`gts8pwifi`) so partitioning and device-specific hardware notes are not directly interchangeable with `gts8wifi`.
 - [`sm8450-mainline`](https://github.com/sm8450-mainline): useful as a broader SM8450 mainline ecosystem reference (DT/device-tree sources, U-Boot/UEFI work, and firmware packaging), and should be treated as upstream context rather than a drop-in configuration for this repository.
 - [`postmarketOS wiki-doc (SM8450/SM8475)`](https://github.com/Taaloy/postmarketos-wiki-doc/blob/f651c36cdcaa8aae04f206071f2d4fc6b445b2e7/postmarketos-wiki/html/en/Qualcomm_Snapdragon_8_Gen_1_8%2B_Gen_1_(SM8450_SM8475).html#L5): useful for chipset-level background and device ecosystem context, but not a per-device flashing or boot recipe for this repository.
+- [`kreatoo/pmaports` linux-postmarketos-qcom-sm8450](https://github.com/kreatoo/pmaports/tree/f3fe9b23f63d6a06717a5de0bb6932f654d37bac/device/testing/linux-postmarketos-qcom-sm8450) and [`nacht20-de/gts9wifi-fedora`](https://github.com/nacht20-de/gts9wifi-fedora.git): useful for additional SM8450 bring-up patterns, but device trees, partitioning, and firmware assumptions vary by hardware and must be adapted per device.
 
 ### Building QEMU image
 
