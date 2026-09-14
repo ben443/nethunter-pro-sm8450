@@ -159,7 +159,7 @@ if [ -z "${KERNEL_IMAGE}" ]; then
         for candidate in /usr/lib/linux-image-*/Image; do
             [ -f "${candidate}" ] && emit_kernel_candidate "${candidate}"
         done
-    } | sort -t "$(printf '\t')" -k1,1Vr -u > "${WORKDIR}/kernel-candidates.txt"
+    } | sort -t "$(printf '\t')" -k1,1Vr > "${WORKDIR}/kernel-candidates.txt"
     while IFS="$(printf '\t')" read -r version candidate; do
         if consider_kernel_candidate "${candidate}"; then
             break

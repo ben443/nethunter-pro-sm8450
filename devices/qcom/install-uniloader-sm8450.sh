@@ -154,7 +154,7 @@ if [ -z "${KERNEL_IMAGE}" ]; then
                 emit_candidate "${candidate}"
             fi
         done
-    } | sort -t "$(printf '\t')" -k1,1Vr -u > "${WORKDIR}/kernel-candidates.txt"
+    } | sort -t "$(printf '\t')" -k1,1Vr > "${WORKDIR}/kernel-candidates.txt"
     while IFS="$(printf '\t')" read -r version candidate; do
         if consider_candidate "${candidate}"; then
             break
