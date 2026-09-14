@@ -89,6 +89,59 @@ Fedora boot prerequisites and constraints (from `ben443/samsung-gts8-notes`):
 - Fedora notes currently rely on ext4 rootfs preparation and a matching DTB (`sm8450-galaxy-tab-s8-5g.dtb`) in the Fedora boot path; one referenced source is Robotix22 Project Mu: <https://github.com/Robotix22/MU-Qcom/raw/8e7ebd3973e54ab22d830f1203fed4877176e99f/Platforms/SM8450Pkg/FdtBlob/sm8450-galaxy-tab-s8-5g.dtb>.
 - The `gts8wifi` qcom config in this repo now defaults to Samsung-style bootimg v4 offsets (`kernel=0x8000`, `ramdisk=0x02000000`, `tags=0x01e00000`, `dtb=0x01f00000`) and appends `clk_ignore_unused pd_ignore_unused` for display/power-domain stability during bring-up.
 
+Flashing workflow (TWRP, experimental and destructive):
+
+1. Build artifacts in this repo:
+
+```sh
+./build.sh -t gts8wifi -e phosh
+```
+
+2. Prepare host-side files for recovery flashing:
+   - TWRP-compatible `parted` binary
+   - `boot.img` for `boot` partition (Project Mu / uniLoader path)
+   - Fedora `p1` image (ESP, fat32)
+   - Fedora `p2` image (boot/ext4)
+   - Fedora rootfs ext4 image (for `fedora_p3`)
+   - Script from this repo: `/home/runner/work/nethunter-pro-sm8450/nethunter-pro-sm8450/devices/qcom/flash-gts8wifi-twrp.sh`
+
+3. Boot tablet to TWRP, connect ADB, and push files:
+
+```sh
+adb push /home/runner/work/nethunter-pro-sm8450/nethunter-pro-sm8450/devices/qcom/flash-gts8wifi-twrp.sh /external_sd/
+adb push <parted-binary> /external_sd/parted
+adb push <boot.img> /external_sd/boot.img
+adb push <fedora-p1.img> /external_sd/fedora-p1.img
+adb push <fedora-p2.img> /external_sd/fedora-p2.img
+adb push <fedora-rootfs.ext4> /external_sd/fedora-rootfs.ext4
+adb shell chmod +x /external_sd/parted /external_sd/flash-gts8wifi-twrp.sh
+```
+
+4. Partition step (replaces existing `userdata`):
+
+```sh
+adb shell /external_sd/flash-gts8wifi-twrp.sh --partition-only --confirm-repartition yes
+```
+
+5. Reboot back to recovery, then flash partitions:
+
+```sh
+adb reboot recovery
+adb shell /external_sd/flash-gts8wifi-twrp.sh \
+  --flash-only \
+  --boot-img /external_sd/boot.img \
+  --fedora-p1-img /external_sd/fedora-p1.img \
+  --fedora-p2-img /external_sd/fedora-p2.img \
+  --rootfs-img /external_sd/fedora-rootfs.ext4
+```
+
+6. Reboot system from TWRP.
+
+Notes for the helper script:
+- It auto-detects `boot` and `userdata` block devices where possible and defaults to `/dev/block/sda` layout.
+- It creates `fedora_p1` (14.0-16.5 GB), `fedora_p2` (16.5-18.0 GB), `fedora_p3` (18.0-40.0 GB), and a smaller `userdata` (40.0-127.0 GB).
+- You can override detection with `--disk`, `--boot-part`, or env vars (`DEVICE_DISK`, `BOOT_PART`, `FEDORA_P1_PART`, `FEDORA_P2_PART`, `FEDORA_ROOT_PART`).
+
 Caveats:
 - Device support here is build-system integration for qcom/SM8450 artifacts, not a full flashing or hardware enablement workflow.
 - If your boot chain requirements differ from current qcom defaults, adjust local boot components accordingly.
