@@ -95,6 +95,7 @@ Caveats:
 Related upstream references:
 - [`aaronsb/sm-x800-linux`](https://github.com/aaronsb/sm-x800-linux): useful for Samsung SM8450 boot-chain context (notably uniLoader usage), but this is focused on Tab S8+ (`gts8pwifi`) so partitioning and device-specific hardware notes are not directly interchangeable with `gts8wifi`.
 - [`sm8450-mainline`](https://github.com/sm8450-mainline): useful as a broader SM8450 mainline ecosystem reference (DT/device-tree sources, U-Boot/UEFI work, and firmware packaging), and should be treated as upstream context rather than a drop-in configuration for this repository.
+- [`postmarketOS wiki-doc (SM8450/SM8475)`](https://github.com/Taaloy/postmarketos-wiki-doc/blob/f651c36cdcaa8aae04f206071f2d4fc6b445b2e7/postmarketos-wiki/html/en/Qualcomm_Snapdragon_8_Gen_1_8%2B_Gen_1_(SM8450_SM8475).html#L5): useful for chipset-level background and device ecosystem context, but not a per-device flashing or boot recipe for this repository.
 
 ### Building QEMU image
 
