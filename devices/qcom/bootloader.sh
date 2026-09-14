@@ -122,19 +122,45 @@ consider_kernel_candidate() {
     consider_kernel_version "${version}"
 }
 
+emit_kernel_candidate() {
+    candidate="$1"
+    base="$(basename "${candidate}")"
+    case "${base}" in
+        vmlinuz-*)
+            version="${base#vmlinuz-}"
+            ;;
+        Image)
+            parent="$(basename "$(dirname "${candidate}")")"
+            case "${parent}" in
+                linux-image-*)
+                    version="${parent#linux-image-}"
+                    ;;
+                *)
+                    return 1
+                    ;;
+            esac
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    printf '%s\t%s\n' "${version}" "${candidate}"
+}
+
 if [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
     {
         for candidate in /boot/vmlinuz-*; do
-            [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
+            [ -f "${candidate}" ] && emit_kernel_candidate "${candidate}"
         done
         for candidate in /usr/lib/linux-image-*/Image; do
-            [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
+            [ -f "${candidate}" ] && emit_kernel_candidate "${candidate}"
         done
-    } | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
-    while IFS= read -r candidate; do
+    } | sort -t "$(printf '\t')" -k1,1Vr -u > "${WORKDIR}/kernel-candidates.txt"
+    while IFS="$(printf '\t')" read -r version candidate; do
         if consider_kernel_candidate "${candidate}"; then
             break
         fi
