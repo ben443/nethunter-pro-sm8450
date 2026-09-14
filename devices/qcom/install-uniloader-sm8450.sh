@@ -105,8 +105,8 @@ if [ -z "${KERNEL_IMAGE}" ]; then
 fi
 
 if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ]; then
-    echo "ERROR: unable to locate matching kernel, ramdisk, and DTB artifacts for sm8450"
-    exit 1
+    echo "WARN: unable to locate matching kernel, ramdisk, and DTB artifacts for sm8450; skipping uniLoader build"
+    exit 0
 fi
 RAW_KERNEL_IMAGE="/usr/lib/linux-image-${KERNEL_VERSION}/Image"
 if [ -e "${RAW_KERNEL_IMAGE}" ] && [ ! -f "${RAW_KERNEL_IMAGE}" ]; then
