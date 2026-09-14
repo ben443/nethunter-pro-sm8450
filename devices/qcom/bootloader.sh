@@ -2,6 +2,12 @@
 
 SCRIPT="$0"
 DEVICE="$1"
+WORKDIR="$(mktemp -d /tmp/qcom-bootloader.XXXXXX)"
+
+cleanup() {
+    rm -rf "${WORKDIR}"
+}
+trap cleanup EXIT INT TERM
 
 CONFIG="$(dirname ${SCRIPT})/configs/${DEVICE}.toml"
 if ! [ -f "${CONFIG}" ]; then
@@ -40,7 +46,75 @@ if [ "${ROOTPART}" = "UUID=" ]; then
     # This means we're using an encrypted rootfs
     ROOTPART="/dev/mapper/root"
 fi
-KERNEL_VERSION=$(linux-version list | tail -1)
+KERNEL_IMAGE=""
+KERNEL_VERSION=""
+RAMDISK_IMAGE=""
+
+resolve_vmlinuz_path() {
+    path="/vmlinuz"
+    if command -v readlink >/dev/null 2>&1; then
+        resolved="$(readlink -f "${path}" 2>/dev/null || true)"
+        if [ -n "${resolved}" ]; then
+            printf '%s\n' "${resolved}"
+            return
+        fi
+        if [ -L "${path}" ]; then
+            link_target="$(readlink "${path}" 2>/dev/null || true)"
+            if [ -n "${link_target}" ]; then
+                case "${link_target}" in
+                    /*) printf '%s\n' "${link_target}" ;;
+                    *) printf '%s\n' "$(dirname "${path}")/${link_target}" ;;
+                esac
+                return
+            fi
+        fi
+    fi
+    printf '%s\n' "${path}"
+}
+
+consider_kernel_candidate() {
+    candidate="$1"
+    base="$(basename "${candidate}")"
+    case "${base}" in
+        vmlinuz-*)
+            version="${base#vmlinuz-}"
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    ramdisk_candidate="/boot/initrd.img-${version}"
+    if [ ! -f "${ramdisk_candidate}" ]; then
+        ramdisk_candidate="/boot/initramfs-${version}.img"
+    fi
+
+    if [ -f "${candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
+        KERNEL_IMAGE="${candidate}"
+        KERNEL_VERSION="${version}"
+        RAMDISK_IMAGE="${ramdisk_candidate}"
+        return 0
+    fi
+    return 1
+}
+
+if [ -e /vmlinuz ]; then
+    consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
+fi
+if [ -z "${KERNEL_IMAGE}" ]; then
+    for candidate in /boot/vmlinuz-*; do
+        [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
+    done | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    while IFS= read -r candidate; do
+        if consider_kernel_candidate "${candidate}"; then
+            break
+        fi
+    done < "${WORKDIR}/kernel-candidates.txt"
+fi
+if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ] || [ -z "${RAMDISK_IMAGE}" ]; then
+    echo "WARN: unable to locate matching kernel and ramdisk artifacts for ${DEVICE}; skipping boot image generation"
+    exit 0
+fi
 
 # Parse config for generic parameters for the current SoC
 SOC=$(tomlq -r "if .chipset then .chipset else \"${DEVICE}\" end" ${CONFIG})
@@ -88,15 +162,22 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
         BOOTIMG_ARGS="${MKBOOTIMG_ARGS}"
     fi
 
+    KERNEL_ARG="${KERNEL_IMAGE}"
     if echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
+        if ! [ -f "${DTB_FILE}" ]; then
+            echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
+            continue
+        fi
         BOOTIMG_ARGS="${BOOTIMG_ARGS} --dtb ${DTB_FILE}"
+        KERNEL_DTB="${WORKDIR}/kernel-dtb-${FULLMODEL}"
+        cat "${KERNEL_IMAGE}" "${DTB_FILE}" > "${KERNEL_DTB}"
+        KERNEL_ARG="${KERNEL_DTB}"
     fi
 
     echo "Creating boot image for ${FULLMODEL}..."
-    cat /boot/vmlinuz-${KERNEL_VERSION} ${DTB_FILE} > /tmp/kernel-dtb
 
     # Create the bootimg as it's the only format recognized by the Android bootloader
     mkbootimg -o /bootimg-${FULLMODEL} ${BOOTIMG_ARGS} \
-        --kernel /tmp/kernel-dtb --ramdisk /boot/initrd.img-${KERNEL_VERSION} \
+        --kernel "${KERNEL_ARG}" --ramdisk "${RAMDISK_IMAGE}" \
         --cmdline "mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
 done

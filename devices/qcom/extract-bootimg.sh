@@ -23,5 +23,9 @@ VARIANTS="$(tomlq -r 'foreach .device[] as $dev (0;
 
 for variant in ${VARIANTS}; do
     echo "Extracting boot image for variant ${variant}"
-    mv "${ROOTDIR}/bootimg-${variant}" "${ARTIFACTDIR}/${IMAGE}.boot-${variant}.img"
+    if [ -f "${ROOTDIR}/bootimg-${variant}" ]; then
+        mv "${ROOTDIR}/bootimg-${variant}" "${ARTIFACTDIR}/${IMAGE}.boot-${variant}.img"
+    else
+        echo "WARN: boot image for variant ${variant} was not generated; skipping extraction"
+    fi
 done
