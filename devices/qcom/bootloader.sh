@@ -162,20 +162,22 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
         BOOTIMG_ARGS="${MKBOOTIMG_ARGS}"
     fi
 
+    KERNEL_ARG="${KERNEL_IMAGE}"
     if echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
+        if ! [ -f "${DTB_FILE}" ]; then
+            echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
+            continue
+        fi
         BOOTIMG_ARGS="${BOOTIMG_ARGS} --dtb ${DTB_FILE}"
-    fi
-
-    if ! [ -f "${DTB_FILE}" ]; then
-        echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
-        continue
+        KERNEL_DTB="${WORKDIR}/kernel-dtb-${FULLMODEL}"
+        cat "${KERNEL_IMAGE}" "${DTB_FILE}" > "${KERNEL_DTB}"
+        KERNEL_ARG="${KERNEL_DTB}"
     fi
 
     echo "Creating boot image for ${FULLMODEL}..."
-    cat "${KERNEL_IMAGE}" "${DTB_FILE}" > /tmp/kernel-dtb
 
     # Create the bootimg as it's the only format recognized by the Android bootloader
     mkbootimg -o /bootimg-${FULLMODEL} ${BOOTIMG_ARGS} \
-        --kernel /tmp/kernel-dtb --ramdisk "${RAMDISK_IMAGE}" \
+        --kernel "${KERNEL_ARG}" --ramdisk "${RAMDISK_IMAGE}" \
         --cmdline "mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
 done
