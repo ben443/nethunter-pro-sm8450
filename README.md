@@ -92,6 +92,10 @@ Caveats:
 - Device support here is build-system integration for qcom/SM8450 artifacts, not a full flashing or hardware enablement workflow.
 - If your boot chain requirements differ from current qcom defaults, adjust local boot components accordingly.
 
+Related upstream references:
+- [`aaronsb/sm-x800-linux`](https://github.com/aaronsb/sm-x800-linux): useful for Samsung SM8450 boot-chain context (notably uniLoader usage), but this is focused on Tab S8+ (`gts8pwifi`) so partitioning and device-specific hardware notes are not directly interchangeable with `gts8wifi`.
+- [`sm8450-mainline`](https://github.com/sm8450-mainline): useful as a broader SM8450 mainline ecosystem reference (DT/device-tree sources, U-Boot/UEFI work, and firmware packaging), and should be treated as upstream context rather than a drop-in configuration for this repository.
+
 ### Building QEMU image
 
 You can build a QEMU x86_64 image by adding the `-t amd64` flag to `build.sh`
