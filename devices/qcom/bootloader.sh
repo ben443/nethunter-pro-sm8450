@@ -16,6 +16,7 @@ if ! [ -f "${CONFIG}" ]; then
     exit 1
 fi
 MKBOOTIMG_KERNEL_SOURCE=$(tomlq -r 'if .bootimg.kernel_source then .bootimg.kernel_source else "kernel" end' "${CONFIG}")
+MKBOOTIMG_CONFIG=$(tomlq -r '.bootimg' "${CONFIG}")
 UNILOADER_VERSION_FILE="/usr/share/uniloader-sm8450/kernel-version"
 
 bootimg_offsets() {
@@ -93,6 +94,15 @@ consider_kernel_candidate() {
         return 0
     fi
     return 1
+}
+
+merged_bootimg_config() {
+    override="$1"
+    if [ "${override}" ]; then
+        printf '%s\n%s\n' "${MKBOOTIMG_CONFIG}" "${override}" | jq -s '.[0] * .[1]' -
+    else
+        printf '%s\n' "${MKBOOTIMG_CONFIG}"
+    fi
 }
 
 kernel_candidate_version() {
@@ -242,11 +252,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
     if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ]; then
         INCLUDE_DTB=0
     fi
-    if [ "${DEVICE_BOOTIMG}" ]; then
-        BOOTIMG_ARGS="$(bootimg_offsets "${DEVICE_BOOTIMG}" "${INCLUDE_DTB}")"
-    else
-        BOOTIMG_ARGS="$(bootimg_offsets "$(tomlq -r '.bootimg' "${CONFIG}")" "${INCLUDE_DTB}")"
-    fi
+    BOOTIMG_ARGS="$(bootimg_offsets "$(merged_bootimg_config "${DEVICE_BOOTIMG}")" "${INCLUDE_DTB}")"
 
     KERNEL_ARG="${KERNEL_IMAGE}"
     RAMDISK_ARG="${RAMDISK_IMAGE}"

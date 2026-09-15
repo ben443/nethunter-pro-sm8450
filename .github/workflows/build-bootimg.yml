@@ -56,7 +56,7 @@ jobs:
             cryptsetup \
             f2fs-tools \
             squashfs-tools-ng
-          sudo python3 -m pip install --break-system-packages yq
+          sudo python3 -m pip install --break-system-packages 'yq==3.4.3'
 
       - name: Enable F2FS kernel support
         if: ${{ inputs.filesystem == 'f2fs' }}
