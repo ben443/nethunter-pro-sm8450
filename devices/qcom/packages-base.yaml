@@ -21,7 +21,7 @@ actions:
       - gstreamer1.0-plugins-base-apps
       - yq
 {{- if ne $device "wip" }}
-{{- if eq $device "sm8450" }}
+{{- if or (eq $device "sm8450") (eq $device "gts8wifi") }}
       - qcom-support-common
       - make
       - gcc
@@ -59,7 +59,7 @@ actions:
     destination: /usr/share/droid-juicer/configs
 {{- end }}
 
-{{- if eq $device "sm8450" }}
+{{- if or (eq $device "sm8450") (eq $device "gts8wifi") }}
   - action: run
     chroot: true
     description: Build and install uniLoader from source

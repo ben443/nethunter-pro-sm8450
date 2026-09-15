@@ -19,6 +19,7 @@ on:
           - sdm845
           - sm6350
           - sm8450
+          - gts8wifi
           - qcom-wip
           - amd64
           - amd64-free
@@ -86,6 +87,17 @@ jobs:
             cryptsetup \
             f2fs-tools \
             squashfs-tools-ng
+
+      - name: Enable F2FS kernel support
+        if: ${{ inputs.filesystem == 'f2fs' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! grep -qw f2fs /proc/filesystems; then
+            sudo apt-get install -y "linux-modules-extra-$(uname -r)"
+            sudo modprobe f2fs
+          fi
 
       - name: Compose build arguments
         id: args

@@ -37,6 +37,8 @@ KERNEL_IMAGE=""
 KERNEL_VERSION=""
 RAMDISK_IMAGE=""
 DTB_IMAGE=""
+CANDIDATE_VERSION=""
+CANDIDATE_PRIORITY=""
 
 resolve_vmlinuz_path() {
     path="/vmlinuz"
@@ -60,18 +62,77 @@ resolve_vmlinuz_path() {
     printf '%s\n' "${path}"
 }
 
-consider_candidate_version() {
-    version="$1"
+kernel_candidate_metadata() {
+    candidate="$1"
+    base="$(basename "${candidate}")"
+    parent="$(basename "$(dirname "${candidate}")")"
+
+    CANDIDATE_VERSION=""
+    CANDIDATE_PRIORITY=""
+    case "${base}" in
+        vmlinuz-*)
+            CANDIDATE_VERSION="${base#vmlinuz-}"
+            CANDIDATE_PRIORITY=2
+            ;;
+        vmlinuz|Image)
+            case "${parent}" in
+                linux-image-*)
+                    CANDIDATE_VERSION="${parent#linux-image-}"
+                    ;;
+                *)
+                    return 1
+                    ;;
+            esac
+            if [ "${base}" = "Image" ]; then
+                CANDIDATE_PRIORITY=0
+            else
+                CANDIDATE_PRIORITY=1
+            fi
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    [ -n "${CANDIDATE_VERSION}" ] && [ -n "${CANDIDATE_PRIORITY}" ]
+}
+
+consider_candidate() {
+    candidate="$1"
+    kernel_candidate_metadata "${candidate}" || return 1
+    version="${CANDIDATE_VERSION}"
     kernel_candidate="/boot/vmlinuz-${version}"
+    packaged_kernel_candidate="/usr/lib/linux-image-${version}/vmlinuz"
     raw_kernel_candidate="/usr/lib/linux-image-${version}/Image"
     ramdisk_candidate="/boot/initrd.img-${version}"
     if [ ! -f "${ramdisk_candidate}" ]; then
         ramdisk_candidate="/boot/initramfs-${version}.img"
     fi
-    dtb_candidate="/usr/lib/linux-image-${version}/qcom/sm8450-samsung-gts8pwifi.dtb"
+    dtb_candidate=""
+    for dtb_name in \
+        "sm8450-galaxy-tab-s8-5g.dtb" \
+        "sm8450-samsung-gts8wifi.dtb" \
+        "sm8450-samsung-gts8pwifi.dtb"
+    do
+        dtb_path="/usr/lib/linux-image-${version}/qcom/${dtb_name}"
+        if [ -f "${dtb_path}" ]; then
+            dtb_candidate="${dtb_path}"
+            break
+        fi
+    done
+    if [ -z "${dtb_candidate}" ]; then
+        return 1
+    fi
 
     if [ -f "${raw_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ] && [ -f "${dtb_candidate}" ]; then
         KERNEL_IMAGE="${raw_kernel_candidate}"
+        KERNEL_VERSION="${version}"
+        RAMDISK_IMAGE="${ramdisk_candidate}"
+        DTB_IMAGE="${dtb_candidate}"
+        return 0
+    fi
+    if [ -f "${packaged_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ] && [ -f "${dtb_candidate}" ]; then
+        KERNEL_IMAGE="${packaged_kernel_candidate}"
         KERNEL_VERSION="${version}"
         RAMDISK_IMAGE="${ramdisk_candidate}"
         DTB_IMAGE="${dtb_candidate}"
@@ -87,75 +148,18 @@ consider_candidate_version() {
     return 1
 }
 
-consider_candidate() {
-    candidate="$1"
-    base="$(basename "${candidate}")"
-    case "${base}" in
-        vmlinuz-*)
-            version="${base#vmlinuz-}"
-            ;;
-        Image)
-            parent="$(basename "$(dirname "${candidate}")")"
-            case "${parent}" in
-                linux-image-*)
-                    version="${parent#linux-image-}"
-                    ;;
-                *)
-                    return 1
-                    ;;
-            esac
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-
-    consider_candidate_version "${version}"
-}
-
-emit_candidate() {
-    candidate="$1"
-    base="$(basename "${candidate}")"
-    case "${base}" in
-        vmlinuz-*)
-            version="${base#vmlinuz-}"
-            ;;
-        Image)
-            parent="$(basename "$(dirname "${candidate}")")"
-            case "${parent}" in
-                linux-image-*)
-                    version="${parent#linux-image-}"
-                    ;;
-                *)
-                    return 1
-                    ;;
-            esac
-            ;;
-        *)
-            return 1
-            ;;
-    esac
-
-    printf '%s\t%s\n' "${version}" "${candidate}"
-}
-
 if [ -e /vmlinuz ]; then
     consider_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
-    {
-        for candidate in /boot/vmlinuz-*; do
-            if [ -f "${candidate}" ]; then
-                emit_candidate "${candidate}"
-            fi
-        done
-        for candidate in /usr/lib/linux-image-*/Image; do
-            if [ -f "${candidate}" ]; then
-                emit_candidate "${candidate}"
-            fi
-        done
-    } | sort -t "$(printf '\t')" -k1,1Vr > "${WORKDIR}/kernel-candidates.txt"
-    while IFS="$(printf '\t')" read -r version candidate; do
+    tab="$(printf '\t')"
+    for candidate in /boot/vmlinuz-* /usr/lib/linux-image-*/vmlinuz /usr/lib/linux-image-*/Image; do
+        [ -f "${candidate}" ] || continue
+        if kernel_candidate_metadata "${candidate}"; then
+            printf '%s%s%s%s%s\n' "${CANDIDATE_VERSION}" "${tab}" "${CANDIDATE_PRIORITY}" "${tab}" "${candidate}"
+        fi
+    done | sort -t "${tab}" -k1,1Vr -k2,2n | cut -f3- > "${WORKDIR}/kernel-candidates.txt"
+    while IFS= read -r candidate; do
         if consider_candidate "${candidate}"; then
             break
         fi
