@@ -67,20 +67,15 @@ jobs:
             sudo modprobe f2fs
           fi
 
-      - name: Compose build arguments
-        id: args
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "value=-t ${{ inputs.device }} -e ${{ inputs.environment }} -F ${{ inputs.filesystem }} -v" >> "${GITHUB_OUTPUT}"
-
       - name: Run build
         shell: bash
-        env:
-          BUILD_ARGS: ${{ steps.args.outputs.value }}
         run: |
           set -euo pipefail
-          sudo ./build.sh ${BUILD_ARGS}
+          sudo ./build.sh \
+            -t "${{ inputs.device }}" \
+            -e "${{ inputs.environment }}" \
+            -F "${{ inputs.filesystem }}" \
+            -v
 
       - name: List generated boot artifacts
         shell: bash

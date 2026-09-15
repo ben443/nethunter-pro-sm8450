@@ -76,15 +76,7 @@ resolve_vmlinuz_path() {
 
 consider_kernel_candidate() {
     candidate="$1"
-    base="$(basename "${candidate}")"
-    case "${base}" in
-        vmlinuz-*)
-            version="${base#vmlinuz-}"
-            ;;
-        *)
-            return 1
-            ;;
-    esac
+    version="$(kernel_candidate_version "${candidate}")" || return 1
 
     ramdisk_candidate="/boot/initrd.img-${version}"
     if [ ! -f "${ramdisk_candidate}" ]; then
@@ -98,6 +90,35 @@ consider_kernel_candidate() {
         return 0
     fi
     return 1
+}
+
+kernel_candidate_version() {
+    candidate="$1"
+    base="$(basename "${candidate}")"
+    case "${base}" in
+        vmlinuz-*)
+            printf '%s\n' "${base#vmlinuz-}"
+            return 0
+            ;;
+        vmlinuz|Image)
+            parent="$(basename "$(dirname "${candidate}")")"
+            case "${parent}" in
+                linux-image-*)
+                    printf '%s\n' "${parent#linux-image-}"
+                    return 0
+                    ;;
+            esac
+            ;;
+    esac
+    return 1
+}
+
+list_kernel_candidates() {
+    for candidate in /boot/vmlinuz-* /usr/lib/linux-image-*/vmlinuz /usr/lib/linux-image-*/Image; do
+        [ -f "${candidate}" ] || continue
+        version="$(kernel_candidate_version "${candidate}")" || continue
+        printf '%s\t%s\n' "${version}" "${candidate}"
+    done | sort -t '	' -k1,1Vr | awk -F '	' '!seen[$2]++ { print $2 }'
 }
 
 resolve_uniloader_path() {
@@ -122,9 +143,7 @@ if [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
-    for candidate in /boot/vmlinuz-*; do
-        [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
-    done | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    list_kernel_candidates > "${WORKDIR}/kernel-candidates.txt"
     while IFS= read -r candidate; do
         if consider_kernel_candidate "${candidate}"; then
             break
