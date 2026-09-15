@@ -115,12 +115,28 @@ kernel_candidate_version() {
     return 1
 }
 
+kernel_candidate_priority() {
+    candidate="$1"
+    case "${candidate}" in
+        /usr/lib/linux-image-*/Image)
+            printf '0\n'
+            ;;
+        /usr/lib/linux-image-*/vmlinuz)
+            printf '1\n'
+            ;;
+        *)
+            printf '2\n'
+            ;;
+    esac
+}
+
 list_kernel_candidates() {
     for candidate in /boot/vmlinuz-* /usr/lib/linux-image-*/vmlinuz /usr/lib/linux-image-*/Image; do
         [ -f "${candidate}" ] || continue
         version="$(kernel_candidate_version "${candidate}")" || continue
-        printf '%s\t%s\n' "${version}" "${candidate}"
-    done | sort -t '	' -k1,1Vr | awk -F '	' '!seen[$2]++ { print $2 }'
+        priority="$(kernel_candidate_priority "${candidate}")"
+        printf '%s\t%s\t%s\n' "${version}" "${priority}" "${candidate}"
+    done | sort -t '	' -k1,1Vr -k2,2n | awk -F '	' '!seen[$3]++ { print $3 }'
 }
 
 if [ -e /vmlinuz ]; then
