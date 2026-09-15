@@ -82,13 +82,17 @@ jobs:
             bmap-tools \
             xz-utils \
             android-sdk-libsparse-utils \
+            python3-venv \
             python3-pip \
             jq \
+            yq \
             mkbootimg \
             cryptsetup \
             f2fs-tools \
             squashfs-tools-ng
-          sudo python3 -m pip install --break-system-packages 'yq==3.4.3'
+          python3 -m venv /tmp/tomlq
+          /tmp/tomlq/bin/pip install --upgrade pip 'yq==3.4.3'
+          sudo install -m755 /tmp/tomlq/bin/tomlq /usr/local/bin/tomlq
 
       - name: Enable F2FS kernel support
         if: ${{ inputs.filesystem == 'f2fs' }}

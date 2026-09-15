@@ -3,7 +3,6 @@
 SCRIPT="$0"
 DEVICE="$1"
 WORKDIR="$(mktemp -d /tmp/qcom-bootloader.XXXXXX)"
-EMPTY_RAMDISK="${WORKDIR}/empty-ramdisk"
 
 cleanup() {
     rm -rf "${WORKDIR}"
@@ -15,9 +14,7 @@ if ! [ -f "${CONFIG}" ]; then
     echo "ERROR: No configuration for device type '${DEVICE}'!"
     exit 1
 fi
-MKBOOTIMG_KERNEL_SOURCE=$(tomlq -r 'if .bootimg.kernel_source then .bootimg.kernel_source else "kernel" end' "${CONFIG}")
 MKBOOTIMG_CONFIG=$(tomlq -r '.bootimg' "${CONFIG}")
-UNILOADER_VERSION_FILE="/usr/share/uniloader-sm8450/kernel-version"
 
 bootimg_offsets() {
     local BOOTIMG="$1"
@@ -240,8 +237,8 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
             continue
         fi
         if [ "${UNILOADER_EMBEDS_RAMDISK}" = "true" ]; then
-            : > "${EMPTY_RAMDISK}"
-            RAMDISK_ARG="${EMPTY_RAMDISK}"
+            RAMDISK_ARG="${WORKDIR}/empty-ramdisk-${FULLMODEL}"
+            : > "${RAMDISK_ARG}"
         fi
     elif echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
         if ! [ -f "${DTB_FILE}" ]; then
