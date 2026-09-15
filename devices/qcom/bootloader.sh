@@ -49,6 +49,8 @@ fi
 KERNEL_IMAGE=""
 KERNEL_VERSION=""
 RAMDISK_IMAGE=""
+CANDIDATE_VERSION=""
+CANDIDATE_PRIORITY=""
 
 resolve_vmlinuz_path() {
     path="/vmlinuz"
@@ -72,17 +74,45 @@ resolve_vmlinuz_path() {
     printf '%s\n' "${path}"
 }
 
-consider_kernel_candidate() {
+kernel_candidate_metadata() {
     candidate="$1"
     base="$(basename "${candidate}")"
+    parent="$(basename "$(dirname "${candidate}")")"
+
+    CANDIDATE_VERSION=""
+    CANDIDATE_PRIORITY=""
     case "${base}" in
         vmlinuz-*)
-            version="${base#vmlinuz-}"
+            CANDIDATE_VERSION="${base#vmlinuz-}"
+            CANDIDATE_PRIORITY=0
+            ;;
+        vmlinuz|Image)
+            case "${parent}" in
+                linux-image-*)
+                    CANDIDATE_VERSION="${parent#linux-image-}"
+                    ;;
+                *)
+                    return 1
+                    ;;
+            esac
+            if [ "${base}" = "vmlinuz" ]; then
+                CANDIDATE_PRIORITY=1
+            else
+                CANDIDATE_PRIORITY=2
+            fi
             ;;
         *)
             return 1
             ;;
     esac
+
+    [ -n "${CANDIDATE_VERSION}" ] && [ -n "${CANDIDATE_PRIORITY}" ]
+}
+
+consider_kernel_candidate() {
+    candidate="$1"
+    kernel_candidate_metadata "${candidate}" || return 1
+    version="${CANDIDATE_VERSION}"
 
     ramdisk_candidate="/boot/initrd.img-${version}"
     if [ ! -f "${ramdisk_candidate}" ]; then
@@ -102,9 +132,13 @@ if [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
-    for candidate in /boot/vmlinuz-*; do
-        [ -f "${candidate}" ] && printf '%s\n' "${candidate}"
-    done | sort -Vr > "${WORKDIR}/kernel-candidates.txt"
+    tab="$(printf '\t')"
+    for candidate in /boot/vmlinuz-* /usr/lib/linux-image-*/vmlinuz /usr/lib/linux-image-*/Image; do
+        [ -f "${candidate}" ] || continue
+        if kernel_candidate_metadata "${candidate}"; then
+            printf '%s%s%s%s%s\n' "${CANDIDATE_VERSION}" "${tab}" "${CANDIDATE_PRIORITY}" "${tab}" "${candidate}"
+        fi
+    done | sort -t "${tab}" -k1,1Vr -k2,2n | cut -f3- > "${WORKDIR}/kernel-candidates.txt"
     while IFS= read -r candidate; do
         if consider_kernel_candidate "${candidate}"; then
             break
