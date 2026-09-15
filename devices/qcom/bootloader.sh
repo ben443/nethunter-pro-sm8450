@@ -150,28 +150,6 @@ list_kernel_candidates() {
     done | sort -t '	' -k1,1Vr -k2,2n | awk -F '	' '!seen[$3]++ { print $3 }'
 }
 
-consider_kernel_version() {
-    version="$1"
-    [ -n "${version}" ] || return 1
-    for candidate in \
-        "/usr/lib/linux-image-${version}/Image" \
-        "/usr/lib/linux-image-${version}/vmlinuz" \
-        "/boot/vmlinuz-${version}"
-    do
-        if consider_kernel_candidate "${candidate}"; then
-            return 0
-        fi
-    done
-    return 1
-}
-
-prefer_uniloader_kernel_version() {
-    [ "${MKBOOTIMG_KERNEL_SOURCE}" = "uniloader" ] || return 1
-    [ -r "${UNILOADER_VERSION_FILE}" ] || return 1
-    version="$(sed -n '1p' "${UNILOADER_VERSION_FILE}" 2>/dev/null || true)"
-    consider_kernel_version "${version}"
-}
-
 resolve_uniloader_path() {
     for candidate in /usr/sbin/uniLoader /usr/sbin/uniloader; do
         if [ -x "${candidate}" ]; then
@@ -190,10 +168,7 @@ resolve_uniloader_path() {
     return 1
 }
 
-if [ -z "${KERNEL_IMAGE}" ]; then
-    prefer_uniloader_kernel_version || true
-fi
-if [ -z "${KERNEL_IMAGE}" ] && [ -e /vmlinuz ]; then
+if [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
@@ -223,7 +198,9 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
     APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" "${CONFIG}")
     # Extract device-specific bootimg parameters in JSON format for processing by `bootimg_offsets()`
     DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" "${CONFIG}")
-    BOOTIMG_KERNEL_SOURCE=$(tomlq -r "if .device[$i].bootimg.kernel_source then .device[$i].bootimg.kernel_source else \"${MKBOOTIMG_KERNEL_SOURCE}\" end" "${CONFIG}")
+    EFFECTIVE_BOOTIMG_CONFIG="$(merged_bootimg_config "${DEVICE_BOOTIMG}")"
+    BOOTIMG_KERNEL_SOURCE=$(printf '%s\n' "${EFFECTIVE_BOOTIMG_CONFIG}" | jq -r 'if .kernel_source then .kernel_source else "kernel" end' -)
+    UNILOADER_EMBEDS_RAMDISK=$(printf '%s\n' "${EFFECTIVE_BOOTIMG_CONFIG}" | jq -r 'if .uniloader_embeds_ramdisk then .uniloader_embeds_ramdisk else false end' -)
 
     CMDLINE="mobile.qcomsoc=qcom/${DEVICE_SOC} mobile.vendor=${VENDOR} mobile.model=${MODEL}"
     if [ "${VARIANT}" ]; then
@@ -252,7 +229,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
     if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ]; then
         INCLUDE_DTB=0
     fi
-    BOOTIMG_ARGS="$(bootimg_offsets "$(merged_bootimg_config "${DEVICE_BOOTIMG}")" "${INCLUDE_DTB}")"
+    BOOTIMG_ARGS="$(bootimg_offsets "${EFFECTIVE_BOOTIMG_CONFIG}" "${INCLUDE_DTB}")"
 
     KERNEL_ARG="${KERNEL_IMAGE}"
     RAMDISK_ARG="${RAMDISK_IMAGE}"
@@ -262,8 +239,10 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
             echo "WARN: unable to locate an installed uniLoader payload for ${FULLMODEL}; skipping boot image generation"
             continue
         fi
-        : > "${EMPTY_RAMDISK}"
-        RAMDISK_ARG="${EMPTY_RAMDISK}"
+        if [ "${UNILOADER_EMBEDS_RAMDISK}" = "true" ]; then
+            : > "${EMPTY_RAMDISK}"
+            RAMDISK_ARG="${EMPTY_RAMDISK}"
+        fi
     elif echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
         if ! [ -f "${DTB_FILE}" ]; then
             echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
