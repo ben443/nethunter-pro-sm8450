@@ -82,11 +82,14 @@ jobs:
             bmap-tools \
             xz-utils \
             android-sdk-libsparse-utils \
+            python3-pip \
+            jq \
             yq \
             mkbootimg \
             cryptsetup \
             f2fs-tools \
             squashfs-tools-ng
+          sudo python3 -m pip install --break-system-packages yq
 
       - name: Enable F2FS kernel support
         if: ${{ inputs.filesystem == 'f2fs' }}

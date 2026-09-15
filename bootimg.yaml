@@ -6,7 +6,7 @@
 {{- $image := or .image "mobian" -}}
 {{- $miniramfs := or .miniramfs "false" }}
 {{- $nonfree := or .nonfree "false" -}}
-{{- $rootfs := or .rootfs "rootfs.tar.xz" }}
+{{- $rootfs := or .rootfs (printf "rootfs-%s-%s.tar.xz" $architecture $environment) }}
 {{- $crypt_root := or .crypt_root "false" -}}
 
 architecture: {{ $architecture }}

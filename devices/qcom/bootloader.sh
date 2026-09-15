@@ -14,6 +14,8 @@ if ! [ -f "${CONFIG}" ]; then
     echo "ERROR: No configuration for device type '${DEVICE}'!"
     exit 1
 fi
+MKBOOTIMG_KERNEL_SOURCE=$(tomlq -r 'if .bootimg.kernel_source then .bootimg.kernel_source else "kernel" end' ${CONFIG})
+UNILOADER_VERSION_FILE="/usr/share/uniloader-sm8450/kernel-version"
 
 bootimg_offsets() {
     local BOOTIMG="$1"
@@ -137,6 +139,28 @@ list_kernel_candidates() {
     done | sort -t '	' -k1,1Vr -k2,2n | awk -F '	' '!seen[$3]++ { print $3 }'
 }
 
+consider_kernel_version() {
+    version="$1"
+    [ -n "${version}" ] || return 1
+    for candidate in \
+        "/usr/lib/linux-image-${version}/Image" \
+        "/usr/lib/linux-image-${version}/vmlinuz" \
+        "/boot/vmlinuz-${version}"
+    do
+        if consider_kernel_candidate "${candidate}"; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+prefer_uniloader_kernel_version() {
+    [ "${MKBOOTIMG_KERNEL_SOURCE}" = "uniloader" ] || return 1
+    [ -r "${UNILOADER_VERSION_FILE}" ] || return 1
+    version="$(sed -n '1p' "${UNILOADER_VERSION_FILE}" 2>/dev/null || true)"
+    consider_kernel_version "${version}"
+}
+
 resolve_uniloader_path() {
     for candidate in /usr/sbin/uniLoader /usr/sbin/uniloader; do
         if [ -x "${candidate}" ]; then
@@ -155,7 +179,10 @@ resolve_uniloader_path() {
     return 1
 }
 
-if [ -e /vmlinuz ]; then
+if [ -z "${KERNEL_IMAGE}" ]; then
+    prefer_uniloader_kernel_version || true
+fi
+if [ -z "${KERNEL_IMAGE}" ] && [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
 if [ -z "${KERNEL_IMAGE}" ]; then
@@ -173,7 +200,6 @@ fi
 
 # Parse config for generic parameters for the current SoC
 SOC=$(tomlq -r "if .chipset then .chipset else \"${DEVICE}\" end" ${CONFIG})
-MKBOOTIMG_KERNEL_SOURCE=$(tomlq -r 'if .bootimg.kernel_source then .bootimg.kernel_source else "kernel" end' ${CONFIG})
 
 for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     # Parse device-specific parameters

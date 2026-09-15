@@ -346,3 +346,5 @@ make -C "${WORKDIR}/uniLoader" -j"${JOBS}" ARCH=arm64 CROSS_COMPILE="${CROSS_COM
 
 install -Dm755 "${WORKDIR}/uniLoader/uniLoader" /usr/sbin/uniLoader
 ln -sf /usr/sbin/uniLoader /usr/sbin/uniloader
+install -d /usr/share/uniloader-sm8450
+printf '%s\n' "${KERNEL_VERSION}" > /usr/share/uniloader-sm8450/kernel-version
