@@ -256,7 +256,6 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
             echo "WARN: unable to locate an installed uniLoader payload for ${FULLMODEL}; skipping boot image generation"
             continue
         fi
-        BOOTIMG_CMDLINE=""
     elif echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
         if ! [ -f "${DTB_FILE}" ]; then
             echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
