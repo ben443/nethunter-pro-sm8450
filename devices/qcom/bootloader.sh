@@ -107,6 +107,14 @@ resolve_uniloader_path() {
             return 0
         fi
     done
+    if command -v uniLoader >/dev/null 2>&1; then
+        command -v uniLoader
+        return 0
+    fi
+    if command -v uniloader >/dev/null 2>&1; then
+        command -v uniloader
+        return 0
+    fi
     return 1
 }
 
