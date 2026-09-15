@@ -52,7 +52,6 @@ jobs:
             android-sdk-libsparse-utils \
             python3-pip \
             jq \
-            yq \
             mkbootimg \
             cryptsetup \
             f2fs-tools \
