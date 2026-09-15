@@ -3,7 +3,6 @@
 SCRIPT="$0"
 DEVICE="$1"
 WORKDIR="$(mktemp -d /tmp/qcom-bootloader.XXXXXX)"
-EMPTY_RAMDISK="${WORKDIR}/empty-ramdisk"
 
 cleanup() {
     rm -rf "${WORKDIR}"
@@ -231,8 +230,6 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
             echo "WARN: unable to locate an installed uniLoader payload for ${FULLMODEL}; skipping boot image generation"
             continue
         fi
-        : > "${EMPTY_RAMDISK}"
-        RAMDISK_ARG="${EMPTY_RAMDISK}"
         BOOTIMG_CMDLINE=""
     elif echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
         if ! [ -f "${DTB_FILE}" ]; then
