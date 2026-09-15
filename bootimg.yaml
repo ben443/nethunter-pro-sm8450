@@ -57,12 +57,10 @@ actions:
       - miniramfs
 {{ end }}
 
-{{ if eq $crypt_root "true" }}
   - action: run
     description: Force initramfs update
     chroot: true
     script: scripts/update-initramfs.sh
-{{ end }}
 
   - action: recipe
     recipe: devices/{{ $family }}/bootloader.yaml

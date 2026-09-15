@@ -4,6 +4,7 @@ chipset = "sm8450"
 version = 4
 kernel_source = "uniloader"
 uniloader_embeds_ramdisk = true
+uniloader_embeds_dtb = true
 base = 0x0
 kernel = 0x8000
 ramdisk = 0x02000000

@@ -198,6 +198,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
     EFFECTIVE_BOOTIMG_CONFIG="$(merged_bootimg_config "${DEVICE_BOOTIMG}")"
     BOOTIMG_KERNEL_SOURCE=$(printf '%s\n' "${EFFECTIVE_BOOTIMG_CONFIG}" | jq -r 'if .kernel_source then .kernel_source else "kernel" end' -)
     UNILOADER_EMBEDS_RAMDISK=$(printf '%s\n' "${EFFECTIVE_BOOTIMG_CONFIG}" | jq -r 'if .uniloader_embeds_ramdisk then .uniloader_embeds_ramdisk else false end' -)
+    UNILOADER_EMBEDS_DTB=$(printf '%s\n' "${EFFECTIVE_BOOTIMG_CONFIG}" | jq -r 'if .uniloader_embeds_dtb then .uniloader_embeds_dtb else false end' -)
 
     CMDLINE="mobile.qcomsoc=qcom/${DEVICE_SOC} mobile.vendor=${VENDOR} mobile.model=${MODEL}"
     if [ "${VARIANT}" ]; then
@@ -223,7 +224,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
     fi
 
     INCLUDE_DTB=1
-    if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ]; then
+    if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ] && [ "${UNILOADER_EMBEDS_DTB}" = "true" ]; then
         INCLUDE_DTB=0
     fi
     BOOTIMG_ARGS="$(bootimg_offsets "${EFFECTIVE_BOOTIMG_CONFIG}" "${INCLUDE_DTB}")"

@@ -61,6 +61,7 @@ jobs:
           python3 -m venv /tmp/tomlq
           /tmp/tomlq/bin/pip install --upgrade pip 'yq==3.4.3'
           sudo install -m755 /tmp/tomlq/bin/tomlq /usr/local/bin/tomlq
+          tomlq -r '.bootimg.pagesize' /home/runner/work/nethunter-pro-sm8450/nethunter-pro-sm8450/devices/qcom/configs/gts8wifi.toml >/dev/null
 
       - name: Enable F2FS kernel support
         if: ${{ inputs.filesystem == 'f2fs' }}
