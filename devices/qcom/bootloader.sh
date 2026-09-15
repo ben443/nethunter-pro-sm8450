@@ -84,7 +84,7 @@ kernel_candidate_metadata() {
     case "${base}" in
         vmlinuz-*)
             CANDIDATE_VERSION="${base#vmlinuz-}"
-            CANDIDATE_PRIORITY=0
+            CANDIDATE_PRIORITY=2
             ;;
         vmlinuz|Image)
             case "${parent}" in
@@ -95,10 +95,10 @@ kernel_candidate_metadata() {
                     return 1
                     ;;
             esac
-            if [ "${base}" = "vmlinuz" ]; then
-                CANDIDATE_PRIORITY=1
+            if [ "${base}" = "Image" ]; then
+                CANDIDATE_PRIORITY=0
             else
-                CANDIDATE_PRIORITY=2
+                CANDIDATE_PRIORITY=1
             fi
             ;;
         *)
@@ -113,14 +113,28 @@ consider_kernel_candidate() {
     candidate="$1"
     kernel_candidate_metadata "${candidate}" || return 1
     version="${CANDIDATE_VERSION}"
-
+    kernel_candidate="/boot/vmlinuz-${version}"
+    packaged_kernel_candidate="/usr/lib/linux-image-${version}/vmlinuz"
+    raw_kernel_candidate="/usr/lib/linux-image-${version}/Image"
     ramdisk_candidate="/boot/initrd.img-${version}"
     if [ ! -f "${ramdisk_candidate}" ]; then
         ramdisk_candidate="/boot/initramfs-${version}.img"
     fi
 
-    if [ -f "${candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
-        KERNEL_IMAGE="${candidate}"
+    if [ -f "${raw_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
+        KERNEL_IMAGE="${raw_kernel_candidate}"
+        KERNEL_VERSION="${version}"
+        RAMDISK_IMAGE="${ramdisk_candidate}"
+        return 0
+    fi
+    if [ -f "${packaged_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
+        KERNEL_IMAGE="${packaged_kernel_candidate}"
+        KERNEL_VERSION="${version}"
+        RAMDISK_IMAGE="${ramdisk_candidate}"
+        return 0
+    fi
+    if [ -f "${kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
+        KERNEL_IMAGE="${kernel_candidate}"
         KERNEL_VERSION="${version}"
         RAMDISK_IMAGE="${ramdisk_candidate}"
         return 0
