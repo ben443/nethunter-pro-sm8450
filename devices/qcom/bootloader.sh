@@ -191,7 +191,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     BOOTIMG_CMDLINE="mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
     if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ]; then
         if ! KERNEL_ARG="$(resolve_uniloader_path)"; then
-            echo "WARN: unable to locate built uniLoader payload for ${FULLMODEL}; skipping boot image generation"
+            echo "WARN: unable to locate an installed uniLoader payload for ${FULLMODEL}; skipping boot image generation"
             continue
         fi
         BOOTIMG_CMDLINE=""
