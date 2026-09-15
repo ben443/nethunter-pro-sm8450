@@ -1,0 +1,95 @@
+name: Build boot image
+
+on:
+  workflow_dispatch:
+    inputs:
+      device:
+        description: "Target device"
+        required: true
+        type: choice
+        default: gts8wifi
+        options:
+          - gts8wifi
+          - sm8450
+      environment:
+        description: "Graphical environment"
+        required: true
+        type: choice
+        default: phosh
+        options:
+          - phosh
+          - plasma-mobile
+      filesystem:
+        description: "Root filesystem type"
+        required: true
+        type: choice
+        default: ext4
+        options:
+          - ext4
+          - f2fs
+
+permissions:
+  contents: read
+
+jobs:
+  build-bootimg:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            debos \
+            bmap-tools \
+            xz-utils \
+            android-sdk-libsparse-utils \
+            yq \
+            mkbootimg \
+            cryptsetup \
+            f2fs-tools \
+            squashfs-tools-ng
+
+      - name: Enable F2FS kernel support
+        if: ${{ inputs.filesystem == 'f2fs' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! grep -qw f2fs /proc/filesystems; then
+            sudo apt-get install -y "linux-modules-extra-$(uname -r)"
+            sudo modprobe f2fs
+          fi
+
+      - name: Compose build arguments
+        id: args
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "value=-t ${{ inputs.device }} -e ${{ inputs.environment }} -F ${{ inputs.filesystem }} -v" >> "${GITHUB_OUTPUT}"
+
+      - name: Run build
+        shell: bash
+        env:
+          BUILD_ARGS: ${{ steps.args.outputs.value }}
+        run: |
+          set -euo pipefail
+          sudo ./build.sh ${BUILD_ARGS}
+
+      - name: List generated boot artifacts
+        shell: bash
+        run: ls -lh nethunterpro-*.boot-*.img || true
+
+      - name: Upload boot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bootimg-${{ inputs.device }}-${{ inputs.environment }}-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            nethunterpro-*.boot-*.img
