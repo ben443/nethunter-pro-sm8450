@@ -3,6 +3,7 @@
 SCRIPT="$0"
 DEVICE="$1"
 WORKDIR="$(mktemp -d /tmp/qcom-bootloader.XXXXXX)"
+EMPTY_RAMDISK="${WORKDIR}/empty-ramdisk"
 
 cleanup() {
     rm -rf "${WORKDIR}"
@@ -14,7 +15,7 @@ if ! [ -f "${CONFIG}" ]; then
     echo "ERROR: No configuration for device type '${DEVICE}'!"
     exit 1
 fi
-MKBOOTIMG_KERNEL_SOURCE=$(tomlq -r 'if .bootimg.kernel_source then .bootimg.kernel_source else "kernel" end' ${CONFIG})
+MKBOOTIMG_KERNEL_SOURCE=$(tomlq -r 'if .bootimg.kernel_source then .bootimg.kernel_source else "kernel" end' "${CONFIG}")
 UNILOADER_VERSION_FILE="/usr/share/uniloader-sm8450/kernel-version"
 
 bootimg_offsets() {
@@ -199,21 +200,20 @@ if [ -z "${KERNEL_IMAGE}" ] || [ -z "${KERNEL_VERSION}" ] || [ -z "${RAMDISK_IMA
 fi
 
 # Parse config for generic parameters for the current SoC
-SOC=$(tomlq -r "if .chipset then .chipset else \"${DEVICE}\" end" ${CONFIG})
-
-for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
+SOC=$(tomlq -r "if .chipset then .chipset else \"${DEVICE}\" end" "${CONFIG}")
+for i in $(seq 0 $(tomlq -r '.device | length - 1' "${CONFIG}")); do
     # Parse device-specific parameters
-    VENDOR=$(tomlq -r ".device[$i].vendor" ${CONFIG})
-    MODEL=$(tomlq -r ".device[$i].model" ${CONFIG})
-    VARIANT=$(tomlq -r "if .device[$i].variant then .device[$i].variant else \"\" end" ${CONFIG})
-    DEVICE_SOC=$(tomlq -r "if .device[$i].chipset then .device[$i].chipset else \"${SOC}\" end" ${CONFIG})
-    DTB_VENDOR=$(tomlq -r "if .device[$i].dtb_vendor then .device[$i].dtb_vendor else \"${VENDOR}\" end" ${CONFIG})
-    DTB_MODEL=$(tomlq -r "if .device[$i].dtb_model then .device[$i].dtb_model else \"${MODEL}\" end" ${CONFIG})
-    DTB_VARIANT=$(tomlq -r "if .device[$i].dtb_variant then .device[$i].dtb_variant else \"${VARIANT}\" end" ${CONFIG})
-    APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" ${CONFIG})
+    VENDOR=$(tomlq -r ".device[$i].vendor" "${CONFIG}")
+    MODEL=$(tomlq -r ".device[$i].model" "${CONFIG}")
+    VARIANT=$(tomlq -r "if .device[$i].variant then .device[$i].variant else \"\" end" "${CONFIG}")
+    DEVICE_SOC=$(tomlq -r "if .device[$i].chipset then .device[$i].chipset else \"${SOC}\" end" "${CONFIG}")
+    DTB_VENDOR=$(tomlq -r "if .device[$i].dtb_vendor then .device[$i].dtb_vendor else \"${VENDOR}\" end" "${CONFIG}")
+    DTB_MODEL=$(tomlq -r "if .device[$i].dtb_model then .device[$i].dtb_model else \"${MODEL}\" end" "${CONFIG}")
+    DTB_VARIANT=$(tomlq -r "if .device[$i].dtb_variant then .device[$i].dtb_variant else \"${VARIANT}\" end" "${CONFIG}")
+    APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" "${CONFIG}")
     # Extract device-specific bootimg parameters in JSON format for processing by `bootimg_offsets()`
-    DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" ${CONFIG})
-    BOOTIMG_KERNEL_SOURCE=$(tomlq -r "if .device[$i].bootimg.kernel_source then .device[$i].bootimg.kernel_source else \"${MKBOOTIMG_KERNEL_SOURCE}\" end" ${CONFIG})
+    DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" "${CONFIG}")
+    BOOTIMG_KERNEL_SOURCE=$(tomlq -r "if .device[$i].bootimg.kernel_source then .device[$i].bootimg.kernel_source else \"${MKBOOTIMG_KERNEL_SOURCE}\" end" "${CONFIG}")
 
     CMDLINE="mobile.qcomsoc=qcom/${DEVICE_SOC} mobile.vendor=${VENDOR} mobile.model=${MODEL}"
     if [ "${VARIANT}" ]; then
@@ -245,7 +245,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     if [ "${DEVICE_BOOTIMG}" ]; then
         BOOTIMG_ARGS="$(bootimg_offsets "${DEVICE_BOOTIMG}" "${INCLUDE_DTB}")"
     else
-        BOOTIMG_ARGS="$(bootimg_offsets "$(tomlq -r '.bootimg' ${CONFIG})" "${INCLUDE_DTB}")"
+        BOOTIMG_ARGS="$(bootimg_offsets "$(tomlq -r '.bootimg' "${CONFIG}")" "${INCLUDE_DTB}")"
     fi
 
     KERNEL_ARG="${KERNEL_IMAGE}"
@@ -256,6 +256,8 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
             echo "WARN: unable to locate an installed uniLoader payload for ${FULLMODEL}; skipping boot image generation"
             continue
         fi
+        : > "${EMPTY_RAMDISK}"
+        RAMDISK_ARG="${EMPTY_RAMDISK}"
     elif echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
         if ! [ -f "${DTB_FILE}" ]; then
             echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"

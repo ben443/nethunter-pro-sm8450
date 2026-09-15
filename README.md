@@ -87,7 +87,7 @@ Fedora boot prerequisites and constraints (from `ben443/samsung-gts8-notes`):
 - Prefer the source-built `uniLoader` boot path as the secondary bootloader (`boot` replacement); keep Project Mu / MU-Qcom as an upstream DTB/UEFI reference rather than the default path for this repo.
 - Expect manual partitioning/flashing steps; this repository does not automate repartitioning or per-device flashing.
 - Fedora notes currently rely on ext4 rootfs preparation and a matching DTB (`sm8450-galaxy-tab-s8-5g.dtb`) in the Fedora boot path; one referenced source is Robotix22 Project Mu: <https://github.com/Robotix22/MU-Qcom/raw/8e7ebd3973e54ab22d830f1203fed4877176e99f/Platforms/SM8450Pkg/FdtBlob/sm8450-galaxy-tab-s8-5g.dtb>.
-- The `gts8wifi` qcom config in this repo now defaults to Samsung-style bootimg v4 offsets (`kernel=0x8000`, `ramdisk=0x02000000`, `tags=0x01e00000`, `dtb=0x01f00000`), appends `clk_ignore_unused pd_ignore_unused` for display/power-domain stability during bring-up, and wraps the generated boot image around the source-built `uniLoader` payload while reusing the matching generated ramdisk; the DTB stays embedded inside `uniLoader`.
+- The `gts8wifi` qcom config in this repo now defaults to Samsung-style bootimg v4 offsets (`kernel=0x8000`, `ramdisk=0x02000000`, `tags=0x01e00000`, `dtb=0x01f00000`), appends `clk_ignore_unused pd_ignore_unused` for display/power-domain stability during bring-up, and wraps the generated boot image around the source-built `uniLoader` payload while preserving the normal boot cmdline; the mainline DTB and matching initramfs stay embedded inside `uniLoader` instead of being attached a second time in the outer Android boot image.
 
 Flashing workflow (TWRP, experimental and destructive):
 
