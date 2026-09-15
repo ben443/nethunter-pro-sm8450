@@ -87,7 +87,7 @@ Fedora boot prerequisites and constraints (from `ben443/samsung-gts8-notes`):
 - Use Project Mu as the secondary bootloader (`boot` replacement) before testing Fedora boot.
 - Expect manual partitioning/flashing steps; this repository does not automate repartitioning or per-device flashing.
 - Fedora notes currently rely on ext4 rootfs preparation and a matching DTB (`sm8450-galaxy-tab-s8-5g.dtb`) in the Fedora boot path; one referenced source is Robotix22 Project Mu: <https://github.com/Robotix22/MU-Qcom/raw/8e7ebd3973e54ab22d830f1203fed4877176e99f/Platforms/SM8450Pkg/FdtBlob/sm8450-galaxy-tab-s8-5g.dtb>.
-- The `gts8wifi` qcom config in this repo now defaults to Samsung-style bootimg v4 offsets (`kernel=0x8000`, `ramdisk=0x02000000`, `tags=0x01e00000`, `dtb=0x01f00000`) and appends `clk_ignore_unused pd_ignore_unused` for display/power-domain stability during bring-up.
+- The `gts8wifi` qcom config in this repo now defaults to Samsung-style bootimg v4 offsets (`kernel=0x8000`, `ramdisk=0x02000000`, `tags=0x01e00000`, `dtb=0x01f00000`), appends `clk_ignore_unused pd_ignore_unused` for display/power-domain stability during bring-up, and wraps the generated boot image around the source-built `uniLoader` payload so the embedded mainline kernel, ramdisk, and DTB stay intact.
 
 Flashing workflow (TWRP, experimental and destructive):
 

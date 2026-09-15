@@ -17,16 +17,18 @@ fi
 
 bootimg_offsets() {
     local BOOTIMG="$1"
+    local INCLUDE_DTB="${2:-1}"
 
+    local BASE="$(echo "${BOOTIMG}" | jq -r 'if .base then .base else 0 end' -)"
     local VERSION="$(echo "${BOOTIMG}" | jq -r 'if .version then .version else 0 end' -)"
-    local KERNEL="$(echo "${BOOTIMG}" | jq -r '.kernel + .base' -)"
-    local RAMDISK="$(echo "${BOOTIMG}" | jq -r '.ramdisk + .base' -)"
-    local SECOND="$(echo "${BOOTIMG}" | jq -r '.second + .base' -)"
-    local TAGS="$(echo "${BOOTIMG}" | jq -r '.tags + .base' -)"
+    local KERNEL="$(echo "${BOOTIMG}" | jq -r '.kernel' -)"
+    local RAMDISK="$(echo "${BOOTIMG}" | jq -r '.ramdisk' -)"
+    local SECOND="$(echo "${BOOTIMG}" | jq -r '.second' -)"
+    local TAGS="$(echo "${BOOTIMG}" | jq -r '.tags' -)"
     local PAGE_SIZE="$(echo "${BOOTIMG}" | jq -r '.pagesize' -)"
-    local DTB="$(echo "${BOOTIMG}" | jq -r 'if .dtb then .dtb + .base else "" end' -)"
+    local DTB="$(echo "${BOOTIMG}" | jq -r 'if .dtb then .dtb else "" end' -)"
 
-    local ARGS="--kernel_offset ${KERNEL} --ramdisk_offset ${RAMDISK}"
+    local ARGS="--base ${BASE} --kernel_offset ${KERNEL} --ramdisk_offset ${RAMDISK}"
     ARGS="${ARGS} --second_offset ${SECOND} --tags_offset ${TAGS}"
     ARGS="${ARGS} --pagesize ${PAGE_SIZE}"
 
@@ -34,7 +36,7 @@ bootimg_offsets() {
         ARGS="${ARGS} --header_version ${VERSION}"
     fi
 
-    if [ "${DTB}" ]; then
+    if [ "${INCLUDE_DTB}" = "1" ] && [ "${DTB}" ]; then
         ARGS="${ARGS} --dtb_offset ${DTB}"
     fi
 
@@ -98,6 +100,16 @@ consider_kernel_candidate() {
     return 1
 }
 
+resolve_uniloader_path() {
+    for candidate in /usr/sbin/uniLoader /usr/sbin/uniloader; do
+        if [ -x "${candidate}" ]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
 if [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
@@ -118,7 +130,7 @@ fi
 
 # Parse config for generic parameters for the current SoC
 SOC=$(tomlq -r "if .chipset then .chipset else \"${DEVICE}\" end" ${CONFIG})
-MKBOOTIMG_ARGS="$(bootimg_offsets "$(tomlq -r '.bootimg' ${CONFIG})")"
+MKBOOTIMG_KERNEL_SOURCE=$(tomlq -r 'if .bootimg.kernel_source then .bootimg.kernel_source else "kernel" end' ${CONFIG})
 
 for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     # Parse device-specific parameters
@@ -132,6 +144,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" ${CONFIG})
     # Extract device-specific bootimg parameters in JSON format for processing by `bootimg_offsets()`
     DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" ${CONFIG})
+    BOOTIMG_KERNEL_SOURCE=$(tomlq -r "if .device[$i].bootimg.kernel_source then .device[$i].bootimg.kernel_source else \"${MKBOOTIMG_KERNEL_SOURCE}\" end" ${CONFIG})
 
     CMDLINE="mobile.qcomsoc=qcom/${DEVICE_SOC} mobile.vendor=${VENDOR} mobile.model=${MODEL}"
     if [ "${VARIANT}" ]; then
@@ -156,14 +169,25 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
         fi
     fi
 
+    INCLUDE_DTB=1
+    if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ]; then
+        INCLUDE_DTB=0
+    fi
     if [ "${DEVICE_BOOTIMG}" ]; then
-        BOOTIMG_ARGS="$(bootimg_offsets "${DEVICE_BOOTIMG}")"
+        BOOTIMG_ARGS="$(bootimg_offsets "${DEVICE_BOOTIMG}" "${INCLUDE_DTB}")"
     else
-        BOOTIMG_ARGS="${MKBOOTIMG_ARGS}"
+        BOOTIMG_ARGS="$(bootimg_offsets "$(tomlq -r '.bootimg' ${CONFIG})" "${INCLUDE_DTB}")"
     fi
 
     KERNEL_ARG="${KERNEL_IMAGE}"
-    if echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
+    BOOTIMG_CMDLINE="mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
+    if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ]; then
+        if ! KERNEL_ARG="$(resolve_uniloader_path)"; then
+            echo "WARN: unable to locate built uniLoader payload for ${FULLMODEL}; skipping boot image generation"
+            continue
+        fi
+        BOOTIMG_CMDLINE=""
+    elif echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
         if ! [ -f "${DTB_FILE}" ]; then
             echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
             continue
@@ -179,5 +203,5 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     # Create the bootimg as it's the only format recognized by the Android bootloader
     mkbootimg -o /bootimg-${FULLMODEL} ${BOOTIMG_ARGS} \
         --kernel "${KERNEL_ARG}" --ramdisk "${RAMDISK_IMAGE}" \
-        --cmdline "mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
+        --cmdline "${BOOTIMG_CMDLINE}"
 done

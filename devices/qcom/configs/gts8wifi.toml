@@ -2,6 +2,7 @@ chipset = "sm8450"
 
 [bootimg]
 version = 4
+kernel_source = "uniloader"
 base = 0x0
 kernel = 0x8000
 ramdisk = 0x02000000

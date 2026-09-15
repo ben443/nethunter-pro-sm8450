@@ -1,11 +1,14 @@
 chipset = "sm8450"
 
 [bootimg]
+version = 4
+kernel_source = "uniloader"
 base = 0x0
 kernel = 0x8000
-ramdisk = 0x1000000
+ramdisk = 0x02000000
+dtb = 0x01f00000
 second = 0
-tags = 0x100
+tags = 0x01e00000
 pagesize = 4096
 
 [[device]]
