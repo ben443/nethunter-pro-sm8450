@@ -3,6 +3,7 @@
 SCRIPT="$0"
 DEVICE="$1"
 WORKDIR="$(mktemp -d /tmp/qcom-bootloader.XXXXXX)"
+EMPTY_RAMDISK="${WORKDIR}/empty-ramdisk"
 
 cleanup() {
     rm -rf "${WORKDIR}"
@@ -223,12 +224,15 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     fi
 
     KERNEL_ARG="${KERNEL_IMAGE}"
+    RAMDISK_ARG="${RAMDISK_IMAGE}"
     BOOTIMG_CMDLINE="mobile.root=${ROOTPART} ${CMDLINE} init=/sbin/init ro ${LOGLEVEL} splash"
     if [ "${BOOTIMG_KERNEL_SOURCE}" = "uniloader" ]; then
         if ! KERNEL_ARG="$(resolve_uniloader_path)"; then
             echo "WARN: unable to locate an installed uniLoader payload for ${FULLMODEL}; skipping boot image generation"
             continue
         fi
+        : > "${EMPTY_RAMDISK}"
+        RAMDISK_ARG="${EMPTY_RAMDISK}"
         BOOTIMG_CMDLINE=""
     elif echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
         if ! [ -f "${DTB_FILE}" ]; then
@@ -245,6 +249,6 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
 
     # Create the bootimg as it's the only format recognized by the Android bootloader
     mkbootimg -o /bootimg-${FULLMODEL} ${BOOTIMG_ARGS} \
-        --kernel "${KERNEL_ARG}" --ramdisk "${RAMDISK_IMAGE}" \
+        --kernel "${KERNEL_ARG}" --ramdisk "${RAMDISK_ARG}" \
         --cmdline "${BOOTIMG_CMDLINE}"
 done

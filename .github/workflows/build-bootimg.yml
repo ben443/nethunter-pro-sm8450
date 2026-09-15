@@ -72,6 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo ./build.sh \
+            -B \
             -t "${{ inputs.device }}" \
             -e "${{ inputs.environment }}" \
             -F "${{ inputs.filesystem }}" \

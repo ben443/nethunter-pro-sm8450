@@ -11,6 +11,7 @@ fi
 ## NOTE: If editing below, make sure to update `./*.yml` for GitLab-CI, as it doesn't call this file (`./build.sh`)
 device="pinephone"
 image="image"
+image_recipe="image.yaml"
 partitiontable="gpt"
 filesystem="ext4"
 environment="phosh"
@@ -36,8 +37,9 @@ contrib="true"
 sign=
 miniramfs=
 verbose=
+bootimg_only=
 
-while getopts "cdDvizobsZCrR:x:S:e:H:f:g:h:m:M:p:t:u:F:" opt
+while getopts "cdDvizobsZCrBR:x:S:e:H:f:g:h:m:M:p:t:u:F:" opt
 do
   case "${opt}" in
     c ) crypt_root=1 ;;
@@ -53,6 +55,7 @@ do
     s ) ssh=1 ;;
     o ) installer=1 ;;
     Z ) zram=1 ;;
+    B ) bootimg_only=1 ;;
     f ) ftp_proxy="${OPTARG}" ;;
     h ) http_proxy="${OPTARG}" ;;
     g ) sign="${OPTARG}" ;;
@@ -113,7 +116,12 @@ installfs_file="installfs-${arch}.tar.xz"
 image_file="nethunterpro-$(date +%Y%m%d)-${device}-${environment}"
 if [ "$installer" ]; then
   image="installer"
+  image_recipe="installer.yaml"
   image_file="nethunterpro-$(date +%Y%m%d)-installer-${device}-${environment}"
+fi
+if [ "${bootimg_only}" ]; then
+  image="bootimg"
+  image_recipe="bootimg.yaml"
 fi
 
 rootfs_file="rootfs-${arch}-${environment}.tar.xz"
@@ -180,7 +188,7 @@ if [ "$installer" ]; then
   xzcat "rootfs-${device}-${environment}.tar.xz" | tar2sqfs "rootfs-${device}-${environment}.sqfs" > /dev/null 2>&1
 fi
 
-${DEBOS_CMD} ${ARGS} "$image.yaml"
+${DEBOS_CMD} ${ARGS} "${image_recipe}"
 
 if [ "$installer" ]; then
   rm -f "rootfs-${device}-${environment}.sqfs"
