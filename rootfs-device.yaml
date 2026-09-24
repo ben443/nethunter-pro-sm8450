@@ -19,6 +19,23 @@ actions:
     script: scripts/setup-apt-nonfree.sh true
 {{ end }}
 
+  {{ if eq $device "r8q" }}
+  - action: overlay
+    description: Inject compiled r8q DTB
+    source: devices/qcom/overlays/r8q
+    destination: /
+
+#  - action: overlay
+    #description: Copy local r8q kernel packages
+    #source: packages/r8q
+   # destination: /tmp/r8q-debs
+
+  - action: run
+    description: Install firmware and custom r8q kernel
+    chroot: true
+    command: apt-get update && apt-get install -y firmware-qcom-soc && dpkg -i /tmp/r8q-debs/*.deb && rm -rf /tmp/r8q-debs
+{{ end }}
+  
   - action: recipe
     recipe: include/packages-fde.yaml
 
