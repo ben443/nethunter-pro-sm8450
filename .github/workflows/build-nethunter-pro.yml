@@ -7,7 +7,7 @@ on:
         description: "Target device"
         required: true
         type: choice
-        default: sm8450
+        default: r8q
         options:
           - pinephone
           - pinetab
