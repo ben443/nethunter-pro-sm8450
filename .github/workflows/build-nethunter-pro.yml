@@ -21,7 +21,7 @@ on:
           - sm8450
           - gts8wifi
           - qcom-wip
-          - amd64
+          - r8q
           - amd64-free
       environment:
         description: "Graphical environment"
