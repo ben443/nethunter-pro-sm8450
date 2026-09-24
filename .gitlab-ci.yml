@@ -305,22 +305,6 @@ image-sm8450-plasma-mobile:
   needs:
     - rootfs-arm64-plasma-mobile
 
-image-r8q-phosh:
-  extends:
-    - .image
-    - .device-r8q
-    - .shell-phosh
-  needs:
-    - rootfs-arm64-phosh
-
-image-r8q-plasma-mobile:
-  extends:
-    - .image
-    - .device-r8q
-    - .shell-plasma-mobile
-  needs:
-    - rootfs-arm64-plasma-mobile
-
 image-gts8wifi-phosh:
   extends:
     - .image
@@ -352,6 +336,22 @@ image-gts8wifi-plasma-mobile:
 #    - .shell-plasma-mobile
 #  needs:
 #    - rootfs-arm64-plasma-mobile
+
+image-r8q-phosh:
+  extends:
+    - .image
+    - .device-r8q
+    - .shell-phosh
+  needs:
+    - rootfs-arm64-phosh
+
+image-r8q-plasma-mobile:
+  extends:
+    - .image
+    - .device-r8q
+    - .shell-plasma-mobile
+  needs:
+    - rootfs-arm64-plasma-mobile
 
 image-amd64-phosh:
   extends:
