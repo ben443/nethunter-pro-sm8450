@@ -81,6 +81,12 @@
   variables:
     MOBIAN_DEVICE_NAME: "gts8wifi"
 
+.device-r8q:
+  extends:
+    - .device-qcom
+  variables:
+    MOBIAN_DEVICE_NAME: "r8q"
+
 .device-sm7150:
   extends:
     - .device-qcom
