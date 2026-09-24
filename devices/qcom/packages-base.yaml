@@ -50,7 +50,11 @@ actions:
 
   - action: overlay
     description: Copy additional packages to image
+{{- if eq $device "r8q" }}
+    source: ../../packages/r8q
+{{- else }}
     source: packages
+{{- end }}
     destination: /srv
 
 {{- if eq $device "r8q" }}

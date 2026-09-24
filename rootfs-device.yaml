@@ -25,10 +25,10 @@ actions:
     source: devices/qcom/overlays/r8q
     destination: /
 
-#  - action: overlay
-    #description: Copy local r8q kernel packages
-    #source: packages/r8q
-   # destination: /tmp/r8q-debs
+  - action: overlay
+    description: Copy local r8q kernel packages
+    source: packages/r8q
+    destination: /tmp/r8q-debs
 
   - action: run
     description: Install firmware and custom r8q kernel
