@@ -142,6 +142,20 @@ consider_kernel_candidate() {
     return 1
 }
 
+resolve_dtb_path() {
+    local dtb_name="$1"
+    for candidate in \
+        "/usr/lib/linux-image-${KERNEL_VERSION}/qcom/${dtb_name}" \
+        "/usr/lib/linux-image-qcom/qcom/${dtb_name}"
+    do
+        if [ -f "${candidate}" ]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
 if [ -e /vmlinuz ]; then
     consider_kernel_candidate "$(resolve_vmlinuz_path)" || true
 fi
@@ -193,7 +207,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     else
         DTB_FULLMODEL="${DTB_MODEL}"
     fi
-    DTB_FILE="/usr/lib/linux-image-${KERNEL_VERSION}/qcom/${DEVICE_SOC}-${DTB_VENDOR}-${DTB_FULLMODEL}.dtb"
+    DTB_NAME="${DEVICE_SOC}-${DTB_VENDOR}-${DTB_FULLMODEL}.dtb"
 
     LOGLEVEL="quiet"
     # Include additional cmdline args if specified
@@ -212,7 +226,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
 
     KERNEL_ARG="${KERNEL_IMAGE}"
     if echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
-        if ! [ -f "${DTB_FILE}" ]; then
+        if ! DTB_FILE="$(resolve_dtb_path "${DTB_NAME}")"; then
             echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
             continue
         fi

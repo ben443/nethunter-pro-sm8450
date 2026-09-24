@@ -50,8 +50,19 @@ actions:
 
   - action: overlay
     description: Copy additional packages to image
+{{- if eq $device "r8q" }}
+    source: ../../packages/r8q
+{{- else }}
     source: packages
+{{- end }}
     destination: /srv
+
+{{- if eq $device "r8q" }}
+  - action: overlay
+    description: Add r8q DTB to image
+    source: overlays/r8q
+    destination: /
+{{- end }}
 
   - action: run
     chroot: true
