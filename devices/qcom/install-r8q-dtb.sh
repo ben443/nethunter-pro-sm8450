@@ -4,7 +4,7 @@ set -eu
 
 DTB_NAME="sm8250-samsung-r8q.dtb"
 SHARED_DTB="/usr/lib/linux-image-qcom/qcom/${DTB_NAME}"
-LINK_TARGET="../../linux-image-qcom/qcom/${DTB_NAME}"
+LINK_TARGET="${SHARED_DTB}"
 FOUND_VERSIONED=
 
 if [ ! -f "${SHARED_DTB}" ]; then
