@@ -153,6 +153,7 @@ resolve_dtb_path() {
             return 0
         fi
     done
+
     return 1
 }
 

@@ -41,13 +41,11 @@ sudo apt install android-sdk-libsparse-utils yq mkbootimg
 - `r8q` (Samsung Galaxy S20 FE 5G / SM8250)
 - `gts8wifi` (Samsung Galaxy Tab S8 Wi-Fi / SM8450)
 
-Example build command for Galaxy Tab S8 Wi-Fi:
+Example build command for Galaxy S20 FE 5G:
 
 ```
-./build.sh -t gts8wifi
+./build.sh -t r8q
 ```
-
-For `sm8450` targets, the build now compiles and installs `uniLoader` from source during image creation.
 
 ### Samsung Galaxy S20 FE 5G (r8q / SM8250)
 
@@ -60,7 +58,7 @@ Build examples:
 ./build.sh -t r8q -e phosh
 ```
 
-The `r8q` qcom config uses Samsung-style bootimg v2 offsets and maps DTB lookup to the `samsung/r8q` naming used by packaged qcom device trees.
+The `r8q` qcom config uses Samsung-style bootimg v2 offsets and maps DTB lookup to the `samsung/r8q` naming used by the packaged qcom device tree. The image build now also regenerates the installed kernel initramfs so boot image creation can find the kernel, ramdisk, and DTB without skipping `boot.img`.
 
 Building with disk encryption support will also require the package `cryptsetup` to be installed
 on your host.

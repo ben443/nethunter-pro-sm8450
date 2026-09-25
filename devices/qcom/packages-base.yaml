@@ -69,6 +69,13 @@ actions:
     description: Install additional packages
     command: dpkg -i /srv/*.deb
 
+{{- if eq $device "r8q" }}
+  - action: run
+    chroot: true
+    description: Regenerate initramfs for the installed r8q kernel
+    script: update-initramfs-r8q.sh
+{{- end }}
+
   - action: overlay
     description: Add droid-juicer configuration to image
     source: droid-juicer
