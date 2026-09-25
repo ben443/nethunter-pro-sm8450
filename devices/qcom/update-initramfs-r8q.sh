@@ -38,5 +38,6 @@ for kernel_image in /boot/vmlinuz-*; do
 done
 
 if [ "${UPDATED}" -eq 0 ]; then
-    echo "WARN: no installed r8q kernel artifacts found for initramfs update; leaving existing initramfs untouched"
+    echo "ERROR: no installed r8q kernel artifacts found for initramfs update" >&2
+    exit 1
 fi
