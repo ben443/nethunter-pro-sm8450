@@ -73,6 +73,7 @@ ensure_ramdisk_for_version() {
         return 1
     fi
 
+    regen_status=0
     (
         resume_conf="/etc/initramfs-tools/conf.d/resume"
         resume_dir="$(dirname "${resume_conf}")"
@@ -119,7 +120,11 @@ ensure_ramdisk_for_version() {
         fi
         echo "RESUME=none" > "${resume_conf}" || exit 1
         update-initramfs -u -k "${version}" >/dev/null 2>&1 || exit 1
-    )
+    ) || regen_status=$?
+
+    if [ "${regen_status}" -ne 0 ]; then
+        return 1
+    fi
 
     if resolve_ramdisk_path "${version}" >/dev/null 2>&1; then
         return 0
