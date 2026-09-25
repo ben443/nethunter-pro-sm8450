@@ -14,7 +14,7 @@ cleanup() {
         rm -f "${RESUME_CONF}" "${BACKUP}"
     fi
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
 
 if [ -f "${RESUME_CONF}" ]; then
     BACKUP="$(mktemp)"
