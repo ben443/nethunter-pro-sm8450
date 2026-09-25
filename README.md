@@ -41,13 +41,11 @@ sudo apt install android-sdk-libsparse-utils yq mkbootimg
 - `r8q` (Samsung Galaxy S20 FE 5G / SM8250)
 - `gts8wifi` (Samsung Galaxy Tab S8 Wi-Fi / SM8450)
 
-Default build command:
+Example build command for Galaxy S20 FE 5G:
 
 ```
-./build.sh
+./build.sh -t r8q
 ```
-
-This now defaults to `r8q`. You can still override the target with `./build.sh -t <device>`.
 
 ### Samsung Galaxy S20 FE 5G (r8q / SM8250)
 
@@ -56,7 +54,6 @@ This now defaults to `r8q`. You can still override the target with `./build.sh -
 Build examples:
 
 ```sh
-./build.sh
 ./build.sh -t r8q
 ./build.sh -t r8q -e phosh
 ```

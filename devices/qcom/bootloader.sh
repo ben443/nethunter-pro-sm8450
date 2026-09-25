@@ -154,14 +154,6 @@ resolve_dtb_path() {
         fi
     done
 
-    for image_dir in /usr/lib/linux-image-*; do
-        candidate="${image_dir}/qcom/${dtb_name}"
-        if [ -f "${candidate}" ]; then
-            printf '%s\n' "${candidate}"
-            return 0
-        fi
-    done
-
     return 1
 }
 
