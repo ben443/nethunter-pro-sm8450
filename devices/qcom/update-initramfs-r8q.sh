@@ -3,7 +3,7 @@
 set -eu
 
 RESUME_CONF="/etc/initramfs-tools/conf.d/resume"
-BACKUP="$(mktemp)"
+BACKUP=""
 HAD_RESUME=0
 UPDATED=0
 
@@ -17,6 +17,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 if [ -f "${RESUME_CONF}" ]; then
+    BACKUP="$(mktemp)"
     cp "${RESUME_CONF}" "${BACKUP}"
     HAD_RESUME=1
 fi
