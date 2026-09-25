@@ -112,7 +112,7 @@ ensure_ramdisk_for_version() {
             had_resume=1
         fi
         echo "RESUME=none" > "${resume_conf}" || exit 1
-        update-initramfs -u -k "${version}" >/dev/null || exit 1
+        update-initramfs -u -k "${version}" || exit 1
     ) || regen_status=$?
 
     if [ "${regen_status}" -ne 0 ]; then
