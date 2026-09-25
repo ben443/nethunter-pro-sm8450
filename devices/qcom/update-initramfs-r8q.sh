@@ -22,16 +22,15 @@ if [ -f "${RESUME_CONF}" ]; then
     HAD_RESUME=1
 fi
 
-for modules_dir in /lib/modules/*; do
-    [ -d "${modules_dir}" ] || continue
-    version="$(basename "${modules_dir}")"
-    [ -f "/boot/vmlinuz-${version}" ] || continue
+for kernel_image in /boot/vmlinuz-*; do
+    [ -f "${kernel_image}" ] || continue
+    version="${kernel_image#/boot/vmlinuz-}"
+    [ -d "/lib/modules/${version}" ] || [ -d "/usr/lib/linux-image-${version}" ] || continue
     echo "RESUME=none" > "${RESUME_CONF}"
     update-initramfs -u -k "${version}"
     UPDATED=1
 done
 
 if [ "${UPDATED}" -eq 0 ]; then
-    echo "ERROR: no installed kernel version with matching /boot/vmlinuz entry found for initramfs update" >&2
-    exit 1
+    echo "WARN: no installed r8q kernel artifacts found for initramfs update; leaving existing initramfs untouched"
 fi
