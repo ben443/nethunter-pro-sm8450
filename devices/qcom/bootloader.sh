@@ -90,7 +90,7 @@ ensure_ramdisk_for_version() {
             had_resume=1
         fi
         echo "RESUME=none" > "${resume_conf}" || exit 1
-        update-initramfs -u -k "${version}" >/dev/null 2>&1 || true
+        update-initramfs -u -k "${version}" >/dev/null 2>&1 || exit 1
     )
 
     [ -f "/boot/initrd.img-${version}" ] || [ -f "/boot/initramfs-${version}.img" ]
