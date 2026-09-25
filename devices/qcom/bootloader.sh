@@ -81,16 +81,12 @@ ensure_ramdisk_for_version() {
         had_resume=0
         cleanup_resume_override() {
             if [ "${had_resume}" -eq 1 ]; then
-                if [ -L "${resume_conf}" ]; then
+                if [ -e "${resume_conf}" ] && [ ! -f "${resume_conf}" ] && [ ! -L "${resume_conf}" ]; then
                     rm -f "${backup}"
                     return 1
                 fi
-                if [ -e "${resume_conf}" ] && [ ! -f "${resume_conf}" ]; then
-                    rm -f "${backup}"
-                    return 1
-                fi
-                cat "${backup}" > "${resume_conf}" || return 1
-                rm -f "${backup}"
+                rm -f "${resume_conf}" || return 1
+                mv "${backup}" "${resume_conf}" || return 1
             else
                 rm -f "${resume_conf}" "${backup}"
             fi
@@ -111,11 +107,8 @@ ensure_ramdisk_for_version() {
             exit 1
         fi
         if [ -f "${resume_conf}" ]; then
-            backup="$(mktemp)" || exit 1
-            if ! cp "${resume_conf}" "${backup}"; then
-                rm -f "${backup}"
-                exit 1
-            fi
+            backup="${resume_conf}.copilot-bak.$$"
+            mv "${resume_conf}" "${backup}" || exit 1
             had_resume=1
         fi
         echo "RESUME=none" > "${resume_conf}" || exit 1
