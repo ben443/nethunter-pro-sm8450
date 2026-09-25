@@ -52,6 +52,79 @@ RAMDISK_IMAGE=""
 CANDIDATE_VERSION=""
 CANDIDATE_PRIORITY=""
 
+resolve_ramdisk_path() {
+    version="$1"
+    for candidate in "/boot/initrd.img-${version}" "/boot/initramfs-${version}.img"; do
+        if [ -f "${candidate}" ] && [ ! -L "${candidate}" ]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
+ensure_ramdisk_for_version() {
+    version="$1"
+    if resolve_ramdisk_path "${version}" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if ! command -v update-initramfs >/dev/null 2>&1; then
+        return 1
+    fi
+
+    regen_status=0
+    (
+        resume_conf="/etc/initramfs-tools/conf.d/resume"
+        resume_dir="$(dirname "${resume_conf}")"
+        backup=""
+        had_resume=0
+        cleanup_resume_override() {
+            if [ "${had_resume}" -eq 1 ]; then
+                if [ -e "${resume_conf}" ] && [ ! -f "${resume_conf}" ] && [ ! -L "${resume_conf}" ]; then
+                    rm -f "${backup}"
+                    return 1
+                fi
+                rm -f "${resume_conf}" || return 1
+                mv "${backup}" "${resume_conf}" || return 1
+            else
+                rm -f "${resume_conf}" "${backup}"
+            fi
+        }
+        trap cleanup_resume_override EXIT
+
+        if [ -L "${resume_dir}" ]; then
+            exit 1
+        fi
+        if [ -e "${resume_dir}" ] && [ ! -d "${resume_dir}" ]; then
+            exit 1
+        fi
+        mkdir -p "${resume_dir}" || exit 1
+        if [ -L "${resume_conf}" ]; then
+            exit 1
+        fi
+        if [ -e "${resume_conf}" ] && [ ! -f "${resume_conf}" ]; then
+            exit 1
+        fi
+        if [ -f "${resume_conf}" ]; then
+            backup="${resume_conf}.copilot-bak.$$"
+            mv "${resume_conf}" "${backup}" || exit 1
+            had_resume=1
+        fi
+        echo "RESUME=none" > "${resume_conf}" || exit 1
+        update-initramfs -u -k "${version}" || exit 1
+    ) || regen_status=$?
+
+    if [ "${regen_status}" -ne 0 ]; then
+        return 1
+    fi
+
+    if resolve_ramdisk_path "${version}" >/dev/null 2>&1; then
+        return 0
+    fi
+    return 1
+}
+
 resolve_vmlinuz_path() {
     path="/vmlinuz"
     if command -v readlink >/dev/null 2>&1; then
@@ -116,9 +189,10 @@ consider_kernel_candidate() {
     kernel_candidate="/boot/vmlinuz-${version}"
     packaged_kernel_candidate="/usr/lib/linux-image-${version}/vmlinuz"
     raw_kernel_candidate="/usr/lib/linux-image-${version}/Image"
-    ramdisk_candidate="/boot/initrd.img-${version}"
+    ramdisk_candidate="$(resolve_ramdisk_path "${version}" || true)"
     if [ ! -f "${ramdisk_candidate}" ]; then
-        ramdisk_candidate="/boot/initramfs-${version}.img"
+        ensure_ramdisk_for_version "${version}" || true
+        ramdisk_candidate="$(resolve_ramdisk_path "${version}" || true)"
     fi
 
     if [ -f "${raw_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
