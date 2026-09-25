@@ -68,6 +68,7 @@ ensure_ramdisk_for_version() {
 
     (
         resume_conf="/etc/initramfs-tools/conf.d/resume"
+        resume_dir="$(dirname "${resume_conf}")"
         backup=""
         had_resume=0
         cleanup_resume_override() {
@@ -79,12 +80,16 @@ ensure_ramdisk_for_version() {
         }
         trap cleanup_resume_override EXIT INT TERM HUP
 
+        mkdir -p "${resume_dir}" || exit 1
         if [ -f "${resume_conf}" ]; then
-            backup="$(mktemp)"
-            cp "${resume_conf}" "${backup}"
+            backup="$(mktemp)" || exit 1
+            if ! cp "${resume_conf}" "${backup}"; then
+                rm -f "${backup}"
+                exit 1
+            fi
             had_resume=1
         fi
-        echo "RESUME=none" > "${resume_conf}"
+        echo "RESUME=none" > "${resume_conf}" || exit 1
         update-initramfs -u -k "${version}" >/dev/null 2>&1 || true
     )
 
