@@ -27,6 +27,11 @@ echo "RESUME=none" > "${RESUME_CONF}"
 for kernel_image in /boot/vmlinuz-*; do
     [ -f "${kernel_image}" ] || continue
     version="${kernel_image#/boot/vmlinuz-}"
+    case "${version}" in
+        *.gz|*.xz|*.zst|*.lz4|*.bz2)
+            version="${version%.*}"
+            ;;
+    esac
     [ -d "/lib/modules/${version}" ] || [ -d "/usr/lib/linux-image-${version}" ] || continue
     update-initramfs -u -k "${version}"
     UPDATED=1
