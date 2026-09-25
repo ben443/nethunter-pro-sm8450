@@ -72,8 +72,8 @@ actions:
 {{- if eq $device "r8q" }}
   - action: run
     chroot: true
-    description: Link the bundled r8q DTB into installed kernel paths
-    script: install-r8q-dtb.sh
+    description: Regenerate initramfs for the installed r8q kernel
+    command: echo "RESUME=none" > /etc/initramfs-tools/conf.d/resume; update-initramfs -u; rm -f /etc/initramfs-tools/conf.d/resume
 {{- end }}
 
   - action: overlay

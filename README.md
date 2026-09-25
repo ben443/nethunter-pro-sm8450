@@ -58,7 +58,7 @@ Build examples:
 ./build.sh -t r8q -e phosh
 ```
 
-The `r8q` qcom config uses Samsung-style bootimg v2 offsets and maps DTB lookup to the `samsung/r8q` naming used by packaged qcom device trees. The build now also links the bundled `sm8250-samsung-r8q.dtb` into installed `linux-image-*` qcom directories so the boot scripts can resolve it consistently.
+The `r8q` qcom config uses Samsung-style bootimg v2 offsets and maps DTB lookup to the `samsung/r8q` naming used by the packaged qcom device tree. The image build now also regenerates the installed kernel initramfs so boot image creation can find the kernel, ramdisk, and DTB without skipping `boot.img`.
 
 Building with disk encryption support will also require the package `cryptsetup` to be installed
 on your host.
