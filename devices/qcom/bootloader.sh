@@ -114,7 +114,13 @@ ensure_ramdisk_for_version() {
         update-initramfs -u -k "${version}" >/dev/null 2>&1 || exit 1
     )
 
-    [ -f "/boot/initrd.img-${version}" ] || [ -f "/boot/initramfs-${version}.img" ]
+    if [ -f "/boot/initrd.img-${version}" ] && [ ! -L "/boot/initrd.img-${version}" ]; then
+        return 0
+    fi
+    if [ -f "/boot/initramfs-${version}.img" ] && [ ! -L "/boot/initramfs-${version}.img" ]; then
+        return 0
+    fi
+    return 1
 }
 
 resolve_vmlinuz_path() {
