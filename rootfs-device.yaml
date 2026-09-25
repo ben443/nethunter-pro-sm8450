@@ -34,6 +34,11 @@ actions:
     description: Install firmware and custom r8q kernel
     chroot: true
     command: apt-get update && apt-get install -y firmware-qcom-soc && dpkg -i /tmp/r8q-debs/*.deb && rm -rf /tmp/r8q-debs
+
+  - action: run
+    description: Link the bundled r8q DTB into installed kernel paths
+    chroot: true
+    script: devices/qcom/install-r8q-dtb.sh
 {{ end }}
   
   - action: recipe

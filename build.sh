@@ -9,7 +9,7 @@ if [ -z "${ARGS+x}" ]; then
 fi
 
 ## NOTE: If editing below, make sure to update `./*.yml` for GitLab-CI, as it doesn't call this file (`./build.sh`)
-device="pinephone"
+device="r8q"
 image="image"
 partitiontable="gpt"
 filesystem="ext4"

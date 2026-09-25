@@ -146,7 +146,8 @@ resolve_dtb_path() {
     local dtb_name="$1"
     for candidate in \
         "/usr/lib/linux-image-${KERNEL_VERSION}/qcom/${dtb_name}" \
-        "/usr/lib/linux-image-qcom/qcom/${dtb_name}"
+        "/usr/lib/linux-image-qcom/qcom/${dtb_name}" \
+        /usr/lib/linux-image-*/qcom/"${dtb_name}"
     do
         if [ -f "${candidate}" ]; then
             printf '%s\n' "${candidate}"
