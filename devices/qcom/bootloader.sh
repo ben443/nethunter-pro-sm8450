@@ -66,21 +66,27 @@ ensure_ramdisk_for_version() {
         return 1
     fi
 
-    resume_conf="/etc/initramfs-tools/conf.d/resume"
-    backup=""
-    had_resume=0
-    if [ -f "${resume_conf}" ]; then
-        backup="$(mktemp)"
-        cp "${resume_conf}" "${backup}"
-        had_resume=1
-    fi
-    echo "RESUME=none" > "${resume_conf}"
-    update-initramfs -u -k "${version}" >/dev/null 2>&1 || true
-    if [ "${had_resume}" -eq 1 ]; then
-        mv "${backup}" "${resume_conf}"
-    else
-        rm -f "${resume_conf}" "${backup}"
-    fi
+    (
+        resume_conf="/etc/initramfs-tools/conf.d/resume"
+        backup=""
+        had_resume=0
+        cleanup_resume_override() {
+            if [ "${had_resume}" -eq 1 ]; then
+                mv "${backup}" "${resume_conf}"
+            else
+                rm -f "${resume_conf}" "${backup}"
+            fi
+        }
+        trap cleanup_resume_override EXIT INT TERM HUP
+
+        if [ -f "${resume_conf}" ]; then
+            backup="$(mktemp)"
+            cp "${resume_conf}" "${backup}"
+            had_resume=1
+        fi
+        echo "RESUME=none" > "${resume_conf}"
+        update-initramfs -u -k "${version}" >/dev/null 2>&1 || true
+    )
 
     [ -f "/boot/initrd.img-${version}" ] || [ -f "/boot/initramfs-${version}.img" ]
 }
