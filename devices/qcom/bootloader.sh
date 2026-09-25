@@ -52,13 +52,20 @@ RAMDISK_IMAGE=""
 CANDIDATE_VERSION=""
 CANDIDATE_PRIORITY=""
 
+resolve_ramdisk_path() {
+    version="$1"
+    for candidate in "/boot/initrd.img-${version}" "/boot/initramfs-${version}.img"; do
+        if [ -f "${candidate}" ] && [ ! -L "${candidate}" ]; then
+            printf '%s\n' "${candidate}"
+            return 0
+        fi
+    done
+    return 1
+}
+
 ensure_ramdisk_for_version() {
     version="$1"
-    ramdisk_candidate="/boot/initrd.img-${version}"
-    if [ ! -f "${ramdisk_candidate}" ]; then
-        ramdisk_candidate="/boot/initramfs-${version}.img"
-    fi
-    if [ -f "${ramdisk_candidate}" ]; then
+    if resolve_ramdisk_path "${version}" >/dev/null 2>&1; then
         return 0
     fi
 
@@ -114,10 +121,7 @@ ensure_ramdisk_for_version() {
         update-initramfs -u -k "${version}" >/dev/null 2>&1 || exit 1
     )
 
-    if [ -f "/boot/initrd.img-${version}" ] && [ ! -L "/boot/initrd.img-${version}" ]; then
-        return 0
-    fi
-    if [ -f "/boot/initramfs-${version}.img" ] && [ ! -L "/boot/initramfs-${version}.img" ]; then
+    if resolve_ramdisk_path "${version}" >/dev/null 2>&1; then
         return 0
     fi
     return 1
@@ -187,16 +191,10 @@ consider_kernel_candidate() {
     kernel_candidate="/boot/vmlinuz-${version}"
     packaged_kernel_candidate="/usr/lib/linux-image-${version}/vmlinuz"
     raw_kernel_candidate="/usr/lib/linux-image-${version}/Image"
-    ramdisk_candidate="/boot/initrd.img-${version}"
-    if [ ! -f "${ramdisk_candidate}" ]; then
-        ramdisk_candidate="/boot/initramfs-${version}.img"
-    fi
+    ramdisk_candidate="$(resolve_ramdisk_path "${version}" || true)"
     if [ ! -f "${ramdisk_candidate}" ]; then
         ensure_ramdisk_for_version "${version}" || true
-        ramdisk_candidate="/boot/initrd.img-${version}"
-        if [ ! -f "${ramdisk_candidate}" ]; then
-            ramdisk_candidate="/boot/initramfs-${version}.img"
-        fi
+        ramdisk_candidate="$(resolve_ramdisk_path "${version}" || true)"
     fi
 
     if [ -f "${raw_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
