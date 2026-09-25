@@ -91,7 +91,7 @@ ensure_ramdisk_for_version() {
                 rm -f "${resume_conf}" "${backup}"
             fi
         }
-        trap cleanup_resume_override EXIT INT TERM HUP
+        trap cleanup_resume_override EXIT
 
         if [ -L "${resume_dir}" ]; then
             exit 1
