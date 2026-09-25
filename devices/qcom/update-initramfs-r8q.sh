@@ -6,8 +6,6 @@ RESUME_CONF="/etc/initramfs-tools/conf.d/resume"
 BACKUP="$(mktemp)"
 HAD_RESUME=0
 UPDATED=0
-TAB="$(printf '\t')"
-PACKAGE_LINES="$(dpkg-query -W -f='${Package}\t${Version}\n' 2>/dev/null || true)"
 
 cleanup() {
     if [ "${HAD_RESUME}" -eq 1 ]; then
@@ -23,24 +21,16 @@ if [ -f "${RESUME_CONF}" ]; then
     HAD_RESUME=1
 fi
 
-while IFS="${TAB}" read -r package version; do
-    [ -n "${package}" ] || continue
-    case "${package}" in
-        linux-image-*) ;;
-        *) continue ;;
-    esac
-    case "${version}" in
-        *-r8q*) ;;
-        *) continue ;;
-    esac
+for modules_dir in /lib/modules/*; do
+    [ -d "${modules_dir}" ] || continue
+    version="$(basename "${modules_dir}")"
+    [ -f "/boot/vmlinuz-${version}" ] || continue
     echo "RESUME=none" > "${RESUME_CONF}"
-    update-initramfs -u -k "${package#linux-image-}"
+    update-initramfs -u -k "${version}"
     UPDATED=1
-done <<EOF
-${PACKAGE_LINES}
-EOF
+done
 
 if [ "${UPDATED}" -eq 0 ]; then
-    echo "ERROR: no installed r8q linux-image package found for initramfs update" >&2
+    echo "ERROR: no installed kernel version with matching /boot/vmlinuz entry found for initramfs update" >&2
     exit 1
 fi
