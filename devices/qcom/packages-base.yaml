@@ -73,7 +73,20 @@ actions:
   - action: run
     chroot: true
     description: Regenerate initramfs for the installed r8q kernel
-    command: echo "RESUME=none" > /etc/initramfs-tools/conf.d/resume; update-initramfs -u; rm -f /etc/initramfs-tools/conf.d/resume
+    command: >-
+      backup="$(mktemp)";
+      had_resume=0;
+      if [ -f /etc/initramfs-tools/conf.d/resume ]; then
+        cp /etc/initramfs-tools/conf.d/resume "${backup}";
+        had_resume=1;
+      fi;
+      echo "RESUME=none" > /etc/initramfs-tools/conf.d/resume;
+      update-initramfs -u;
+      if [ "${had_resume}" -eq 1 ]; then
+        mv "${backup}" /etc/initramfs-tools/conf.d/resume;
+      else
+        rm -f /etc/initramfs-tools/conf.d/resume "${backup}";
+      fi
 {{- end }}
 
   - action: overlay
