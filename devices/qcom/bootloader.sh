@@ -52,6 +52,39 @@ RAMDISK_IMAGE=""
 CANDIDATE_VERSION=""
 CANDIDATE_PRIORITY=""
 
+ensure_ramdisk_for_version() {
+    version="$1"
+    ramdisk_candidate="/boot/initrd.img-${version}"
+    if [ ! -f "${ramdisk_candidate}" ]; then
+        ramdisk_candidate="/boot/initramfs-${version}.img"
+    fi
+    if [ -f "${ramdisk_candidate}" ]; then
+        return 0
+    fi
+
+    if ! command -v update-initramfs >/dev/null 2>&1; then
+        return 1
+    fi
+
+    resume_conf="/etc/initramfs-tools/conf.d/resume"
+    backup=""
+    had_resume=0
+    if [ -f "${resume_conf}" ]; then
+        backup="$(mktemp)"
+        cp "${resume_conf}" "${backup}"
+        had_resume=1
+    fi
+    echo "RESUME=none" > "${resume_conf}"
+    update-initramfs -u -k "${version}" >/dev/null 2>&1 || true
+    if [ "${had_resume}" -eq 1 ]; then
+        mv "${backup}" "${resume_conf}"
+    else
+        rm -f "${resume_conf}" "${backup}"
+    fi
+
+    [ -f "/boot/initrd.img-${version}" ] || [ -f "/boot/initramfs-${version}.img" ]
+}
+
 resolve_vmlinuz_path() {
     path="/vmlinuz"
     if command -v readlink >/dev/null 2>&1; then
@@ -119,6 +152,13 @@ consider_kernel_candidate() {
     ramdisk_candidate="/boot/initrd.img-${version}"
     if [ ! -f "${ramdisk_candidate}" ]; then
         ramdisk_candidate="/boot/initramfs-${version}.img"
+    fi
+    if [ ! -f "${ramdisk_candidate}" ]; then
+        ensure_ramdisk_for_version "${version}" || true
+        ramdisk_candidate="/boot/initrd.img-${version}"
+        if [ ! -f "${ramdisk_candidate}" ]; then
+            ramdisk_candidate="/boot/initramfs-${version}.img"
+        fi
     fi
 
     if [ -f "${raw_kernel_candidate}" ] && [ -f "${ramdisk_candidate}" ]; then
