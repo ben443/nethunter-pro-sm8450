@@ -57,13 +57,6 @@ actions:
 {{- end }}
     destination: /srv
 
-{{- if eq $device "r8q" }}
-  - action: overlay
-    description: Add r8q DTB to image
-    source: overlays/r8q
-    destination: /
-{{- end }}
-
   - action: run
     chroot: true
     description: Install additional packages
