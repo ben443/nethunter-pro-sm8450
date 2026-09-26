@@ -31,6 +31,15 @@ on:
         options:
           - phosh
           - plasma-mobile
+      build_mode:
+        description: "Build scope"
+        required: true
+        type: choice
+        default: full
+        options:
+          - full
+          - bootimg-only
+          - initrd-only
       filesystem:
         description: "Root filesystem type"
         required: true
@@ -105,6 +114,7 @@ jobs:
         run: |
           set -euo pipefail
           ARGS="-t ${{ inputs.device }} -e ${{ inputs.environment }} -F ${{ inputs.filesystem }} -v"
+          MODE="${{ inputs.build_mode }}"
 
           if [[ "${{ inputs.installer }}" == "true" ]]; then
             ARGS="${ARGS} -o"
@@ -119,6 +129,15 @@ jobs:
             ARGS="${ARGS} -Z"
           fi
 
+          if [[ "${MODE}" == "initrd-only" ]]; then
+            ARGS="${ARGS} -o"
+          fi
+
+          if [[ "${MODE}" != "full" ]]; then
+            ARGS="${ARGS} -i"
+          fi
+
+          echo "mode=${MODE}" >> "${GITHUB_OUTPUT}"
           echo "value=${ARGS}" >> "${GITHUB_OUTPUT}"
 
       - name: Run build
@@ -129,11 +148,50 @@ jobs:
           set -euo pipefail
           sudo ./build.sh ${BUILD_ARGS}
 
+      - name: Collect boot image artifacts
+        if: ${{ steps.args.outputs.mode == 'bootimg-only' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p workflow-artifacts
+          shopt -s nullglob
+          bootimgs=(nethunterpro-*.boot-*.img)
+          if [[ ${#bootimgs[@]} -eq 0 ]]; then
+            echo "No boot image artifacts were produced" >&2
+            exit 1
+          fi
+          cp "${bootimgs[@]}" workflow-artifacts/
+
+      - name: Collect initrd artifacts
+        if: ${{ steps.args.outputs.mode == 'initrd-only' }}
+        shell: bash
+        env:
+          DEVICE: ${{ inputs.device }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          mkdir -p workflow-artifacts
+          ROOTFS_TAR="$(ls -1t "rootfs-${DEVICE}-${ENVIRONMENT}.tar.xz" 2>/dev/null | head -n1 || true)"
+          if [[ -z "${ROOTFS_TAR}" ]]; then
+            echo "Could not find rootfs tarball for ${DEVICE}/${ENVIRONMENT}" >&2
+            exit 1
+          fi
+          INITRD_PATHS="$(tar -tJf "${ROOTFS_TAR}" | grep -E '^boot/(initrd\.img-|initramfs-).+' || true)"
+          if [[ -z "${INITRD_PATHS}" ]]; then
+            echo "No initrd/initramfs files found inside ${ROOTFS_TAR}" >&2
+            exit 1
+          fi
+          tar -xJf "${ROOTFS_TAR}" -C workflow-artifacts ${INITRD_PATHS}
+
       - name: List generated artifacts
         shell: bash
-        run: ls -lh nethunterpro-* || true
+        run: |
+          ls -lh nethunterpro-* || true
+          ls -lh workflow-artifacts || true
+          ls -lh workflow-artifacts/boot || true
 
-      - name: Upload artifacts
+      - name: Upload full build artifacts
+        if: ${{ steps.args.outputs.mode == 'full' }}
         uses: actions/upload-artifact@v4
         with:
           name: nethunterpro-${{ inputs.device }}-${{ inputs.environment }}-${{ github.run_number }}
@@ -145,3 +203,21 @@ jobs:
             nethunterpro-*.tar.xz
             nethunterpro-*.sha256sums
             nethunterpro-*.sha256sums.asc
+
+      - name: Upload boot image artifacts
+        if: ${{ steps.args.outputs.mode == 'bootimg-only' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nethunterpro-bootimg-${{ inputs.device }}-${{ inputs.environment }}-${{ github.run_number }}
+          if-no-files-found: error
+          path: workflow-artifacts/*.boot-*.img
+
+      - name: Upload initrd artifacts
+        if: ${{ steps.args.outputs.mode == 'initrd-only' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: nethunterpro-initrd-${{ inputs.device }}-${{ inputs.environment }}-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            workflow-artifacts/boot/initrd.img-*
+            workflow-artifacts/boot/initramfs-*.img
