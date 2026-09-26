@@ -92,7 +92,7 @@ case "${device}" in
     fi
     family="qcom"
     SECTSIZE="$(tomlq -r '.bootimg.pagesize' devices/qcom/configs/${device}.toml)"
-    ARGS="${ARGS} -e MKE2FS_DEVICE_SECTSIZE:${SECTSIZE} -t nonfree:true -t bootonroot:true"
+    ARGS="${ARGS} -e MKE2FS_DEVICE_SECTSIZE:${SECTSIZE} -t nonfree:true -t bootonroot:false"
     ;;
   "amd64"|"amd64-free" )
     arch="amd64"
