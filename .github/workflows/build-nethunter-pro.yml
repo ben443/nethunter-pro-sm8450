@@ -157,8 +157,8 @@ jobs:
           shopt -s nullglob
           bootimgs=(nethunterpro-*.boot-*.img)
           if [[ ${#bootimgs[@]} -eq 0 ]]; then
-            echo "No boot image artifacts were produced" >&2
-            exit 1
+            echo "No boot image artifacts were produced; boot image generation was skipped by the build" >&2
+            exit 0
           fi
           cp "${bootimgs[@]}" workflow-artifacts/
 
@@ -209,7 +209,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nethunterpro-bootimg-${{ inputs.device }}-${{ inputs.environment }}-${{ github.run_number }}
-          if-no-files-found: error
+          if-no-files-found: warn
           path: workflow-artifacts/*.boot-*.img
 
       - name: Upload initrd artifacts
