@@ -176,7 +176,7 @@ jobs:
             echo "Could not find rootfs tarball for ${DEVICE}/${ENVIRONMENT}" >&2
             exit 1
           fi
-          INITRD_PATHS="$(tar -tJf "${ROOTFS_TAR}" | grep -E '^boot/(initrd\.img-|initramfs-).+' || true)"
+          INITRD_PATHS="$(tar -tJf "${ROOTFS_TAR}" | grep -E '^(\./)?boot/(initrd\.img-|initramfs-).+' || true)"
           if [[ -z "${INITRD_PATHS}" ]]; then
             echo "No initrd/initramfs files found inside ${ROOTFS_TAR}" >&2
             exit 1
