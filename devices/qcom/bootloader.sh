@@ -267,6 +267,7 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
     DTB_MODEL=$(tomlq -r "if .device[$i].dtb_model then .device[$i].dtb_model else \"${MODEL}\" end" ${CONFIG})
     DTB_VARIANT=$(tomlq -r "if .device[$i].dtb_variant then .device[$i].dtb_variant else \"${VARIANT}\" end" ${CONFIG})
     APPEND=$(tomlq -r "if .device[$i].append then .device[$i].append else \"\" end" ${CONFIG})
+    DTB_MODEL_FALLBACKS=$(tomlq -r "if .device[$i].dtb_model_fallbacks then .device[$i].dtb_model_fallbacks[] else empty end" ${CONFIG})
     # Extract device-specific bootimg parameters in JSON format for processing by `bootimg_offsets()`
     DEVICE_BOOTIMG=$(tomlq -r "if .device[$i].bootimg then .device[$i].bootimg else \"\" end" ${CONFIG})
 
@@ -283,6 +284,18 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
         DTB_FULLMODEL="${DTB_MODEL}"
     fi
     DTB_NAME="${DEVICE_SOC}-${DTB_VENDOR}-${DTB_FULLMODEL}.dtb"
+    DTB_NAMES="${DTB_NAME}"
+    for fallback_model in ${DTB_MODEL_FALLBACKS}; do
+        if [ "${DTB_VARIANT}" ]; then
+            fallback_fullmodel="${fallback_model}-${DTB_VARIANT}"
+        else
+            fallback_fullmodel="${fallback_model}"
+        fi
+        fallback_name="${DEVICE_SOC}-${DTB_VENDOR}-${fallback_fullmodel}.dtb"
+        if [ "${fallback_name}" != "${DTB_NAME}" ]; then
+            DTB_NAMES="${DTB_NAMES} ${fallback_name}"
+        fi
+    done
 
     LOGLEVEL="quiet"
     # Include additional cmdline args if specified
@@ -301,8 +314,14 @@ for i in $(seq 0 $(tomlq -r '.device | length - 1' ${CONFIG})); do
 
     KERNEL_ARG="${KERNEL_IMAGE}"
     if echo "${BOOTIMG_ARGS}" | grep -q "dtb_offset"; then
-        if ! DTB_FILE="$(resolve_dtb_path "${DTB_NAME}")"; then
-            echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; skipping boot image generation"
+        DTB_FILE=""
+        for dtb_name in ${DTB_NAMES}; do
+            if DTB_FILE="$(resolve_dtb_path "${dtb_name}")"; then
+                break
+            fi
+        done
+        if [ -z "${DTB_FILE}" ]; then
+            echo "WARN: unable to locate DTB artifact for ${FULLMODEL}; tried ${DTB_NAMES}; skipping boot image generation"
             continue
         fi
         BOOTIMG_ARGS="${BOOTIMG_ARGS} --dtb ${DTB_FILE}"
