@@ -75,6 +75,28 @@ actions:
     destination: /usr/share/droid-juicer/configs
 {{- end }}
 
+{{- if eq $device "r8q" }}
+  - action: overlay
+    description: Copy local r8q kernel packages to image
+    source: packages/r8q
+    destination: /srv
+
+  - action: run
+    chroot: true
+    description: Install local r8q kernel packages
+    command: dpkg -i /srv/*.deb
+
+  - action: overlay
+    description: Add fallback r8q DTB overlay
+    source: devices/qcom/overlays/r8q
+    destination: /
+
+  - action: run
+    chroot: true
+    description: Regenerate initramfs for the installed r8q kernel
+    script: update-initramfs-r8q.sh
+{{- end }}
+
 {{- if or (eq $device "sm8450") (eq $device "gts8wifi") }}
   - action: run
     chroot: true
